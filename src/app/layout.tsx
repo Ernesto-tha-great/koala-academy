@@ -8,6 +8,8 @@ import {
 } from '@clerk/nextjs'
 import localFont from "next/font/local";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { MainNav } from "../components/MainNav";
 import { ConvexClientProvider } from "@/components/providers/convex-provider";
 
 const geistSans = localFont({
@@ -39,7 +41,9 @@ export default function RootLayout({
       >
         <ClerkProvider>
           <ConvexClientProvider>
+            <MainNav />
             {children}
+            <Toaster />
           </ConvexClientProvider>
         </ClerkProvider>
       </body>

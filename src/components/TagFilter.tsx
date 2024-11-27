@@ -1,36 +1,39 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-import { useRouter, useSearchParams } from "next/navigation";
+interface TagFilterProps {
+  selectedTag?: string;
+}
 
-export function TagFilter() {
+export function TagFilter({ selectedTag }: TagFilterProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const currentTag = searchParams.get("tag");
-  
-  const tags = ["All", "React", "Next.js", "TypeScript", "Backend"]; // You might want to fetch these dynamically
+  const tags = useQuery(api.tags.list);
+
+  if (!tags?.length) return null;
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2">
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant={selectedTag ? "outline" : "default"}
+        size="sm"
+        onClick={() => router.push("/blog")}
+      >
+        All
+      </Button>
       {tags.map((tag) => (
-        <button
-          key={tag}
-          onClick={() => {
-            if (tag === "All") {
-              router.push("/blog");
-            } else {
-              router.push(`/blog?tag=${tag.toLowerCase()}`);
-            }
-          }}
-          className={`px-4 py-2 rounded-full text-sm whitespace-nowrap ${
-            (tag === "All" && !currentTag) || 
-            tag.toLowerCase() === currentTag
-              ? "bg-blue-100 text-blue-800"
-              : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-          }`}
+        <Button
+          key={tag.name}
+          variant={selectedTag === tag.name ? "default" : "outline"}
+          size="sm"
+          onClick={() => router.push(`/blog?tag=${tag.name}`)}
         >
-          {tag}
-        </button>
+          {tag.name}
+        </Button>
       ))}
     </div>
   );

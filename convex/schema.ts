@@ -59,7 +59,8 @@ export default defineSchema({
     articleCount: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_name", ["name"]),
+    .index("by_name", ["name"])
+    .index("by_count", ["articleCount"]),
 
   users: defineTable({
     userId: v.string(),

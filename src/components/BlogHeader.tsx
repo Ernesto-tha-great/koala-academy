@@ -1,39 +1,22 @@
-"use client";
-
 import Link from "next/link";
-import { UserButton, SignInButton, useUser } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 
 export function BlogHeader() {
-  const { user, isLoaded } = useUser();
-
   return (
     <header className="border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-xl font-bold">
-            Morph Blog
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <nav className="flex items-center gap-6">
+          <Link href="/blog" className="font-medium hover:text-primary">
+            Latest
           </Link>
-          
-          <nav className="flex items-center gap-6">
-            <Link href="/blog" className="hover:text-gray-600">
-              Articles
-            </Link>
-            {user?.publicMetadata?.role === "admin" && (
-              <Link href="/admin" className="hover:text-gray-600">
-                Admin
-              </Link>
-            )}
-            {isLoaded && (
-              <div>
-                {user ? (
-                  <UserButton afterSignOutUrl="/" />
-                ) : (
-                  <SignInButton mode="modal" />
-                )}
-              </div>
-            )}
-          </nav>
-        </div>
+          <Link href="/blog?sort=popular" className="font-medium hover:text-primary">
+            Popular
+          </Link>
+        </nav>
+        <Button variant="ghost" size="icon">
+          <Search className="h-4 w-4" />
+        </Button>
       </div>
     </header>
   );
