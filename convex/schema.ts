@@ -72,7 +72,8 @@ export default defineSchema({
     lastLogin: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_userId", ["userId"]),
 
   audit_logs: defineTable({
     action: v.string(),

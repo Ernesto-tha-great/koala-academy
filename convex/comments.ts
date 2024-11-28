@@ -1,7 +1,7 @@
 // convex/comments.ts
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireUser, auditLog } from "./auth";
+import { requireUser } from "./auth";
 import { ConvexError } from "convex/values";
 
 export const list = query({
@@ -78,14 +78,14 @@ export const create = mutation({
       createdAt: Date.now(),
     });
 
-    await auditLog(
-      ctx,
-      "comment_created",
-      user.user.userId,
-      "comments",
-      comment,
-      JSON.stringify({ articleId: args.articleId })
-    );
+    // await auditLog(
+    //   ctx,
+    //   "comment_created",
+    //   user.user.userId,
+    //   "comments",
+    //   comment,
+    //   JSON.stringify({ articleId: args.articleId })
+    // );
 
     return comment;
   },
@@ -113,14 +113,14 @@ export const update = mutation({
       updatedAt: Date.now(),
     });
 
-    await auditLog(
-      ctx,
-      "comment_updated",
-      user.user.userId,
-      "comments",
-      args.id,
-      JSON.stringify({ content: args.content })
-    );
+    // await auditLog(
+    //   ctx,
+    //   "comment_updated",
+    //   user.user.userId,
+    //   "comments",
+    //   args.id,
+    //   JSON.stringify({ content: args.content })
+    // );
 
     return updatedComment;
   },
@@ -142,14 +142,14 @@ export const moderate = mutation({
       status: args.status,
     });
 
-    await auditLog(
-      ctx,
-      "comment_moderated",
-      user.user.userId,
-      "comments",
-      args.id,
-      JSON.stringify({ status: args.status })
-    );
+    // await auditLog(
+    //   ctx,
+    //   "comment_moderated",
+    //   user.user.userId,
+    //   "comments",
+    //   args.id,
+    //   JSON.stringify({ status: args.status })
+    // );
 
     return comment;
   },
