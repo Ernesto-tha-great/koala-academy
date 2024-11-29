@@ -1,125 +1,344 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast"
 
-type FormData = {
-  title: string;
-  content: string;
-  type: "markdown" | "external" | "video";
-  externalUrl?: string;
-  videoUrl?: string;
-  tags: string[];
-};
+
+const formSchema = z.object({
+  type: z.enum(["markdown", "external", "video"]),
+  status: z.enum(["draft", "published"]),
+  title: z.string().min(1, "Title is required"),
+  excerpt: z.string()
+    .min(1, "Excerpt is required")
+    .max(300, "Excerpt must be less than 300 characters"),
+  content: z.string().optional(),
+  externalUrl: z.string().url().optional(),
+  videoUrl: z.string().url().optional(),
+  tags: z.string().transform((str) => 
+    str ? str.split(",").map((tag) => tag.trim()).filter(Boolean) : []
+  ),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string()
+    .max(160, "SEO description must be less than 160 characters")
+    .optional(),
+}).refine((data) => {
+  if (data.type === "markdown" && !data.content) {
+    return false;
+  }
+  if (data.type === "external" && !data.externalUrl) {
+    return false;
+  }
+  if (data.type === "video" && !data.videoUrl) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Required fields missing for selected article type"
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 export function ArticleForm() {
   const router = useRouter();
+  const { toast } = useToast()
   const createArticle = useMutation(api.articles.create);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>();
-  const articleType = watch("type");
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: "markdown",
+      status: "draft",
+      title: "",
+      excerpt: "",
+      content: "",
+      tags: "",
+      seoTitle: "",
+      seoDescription: "",
+    },
+  });
+
+  const articleType = form.watch("type");
+  const isSubmitting = form.formState.isSubmitting;
 
   const onSubmit = async (data: FormData) => {
     try {
-      setIsSubmitting(true);
-      await createArticle(data);
+      await createArticle({
+        ...data,
+        // Ensure content is empty if not markdown
+        content: data.type === "markdown" ? data.content || "" : "",
+        // Convert tags string to array (handled by zod transform)
+        tags: data.tags,
+        // Clean up optional fields
+        externalUrl: data.type === "external" ? data.externalUrl : undefined,
+        videoUrl: data.type === "video" ? data.videoUrl : undefined,
+      });
+
+      toast({
+        title: "Success",
+        description: data.status === "published" 
+          ? "Article published successfully" 
+          : "Draft saved successfully",
+      });
+
       router.push("/admin");
     } catch (error) {
       console.error("Failed to create article:", error);
-    } finally {
-      setIsSubmitting(false);
+      toast({
+        title: "Error",
+        description: "Failed to create article. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Article Type
-        </label>
-        <select
-          {...register("type", { required: true })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>Article Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select article type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="markdown">Markdown</SelectItem>
+                    <SelectItem value="external">External Link</SelectItem>
+                    <SelectItem value="video">Video</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }: { field: any }  ) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }: { field: any }    ) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter the article title" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="excerpt"
+          render={({ field }: { field: any }) => (
+            <FormItem>
+              <FormLabel>Excerpt</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Brief summary of the article"
+                  className="h-[100px]"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                A short summary of the article. Will be used for previews and SEO.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {articleType === "external" && (
+          <FormField
+            control={form.control}
+            name="externalUrl"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>External URL</FormLabel>
+                <FormControl>
+                  <Input
+                    type="url"
+                    placeholder="https://example.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {articleType === "video" && (
+          <FormField
+            control={form.control}
+            name="videoUrl"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>Video URL</FormLabel>
+                <FormControl>
+                  <Input
+                    type="url"
+                    placeholder="https://youtube.com/..."
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {articleType === "markdown" && (
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>Content</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Write your markdown content here..."
+                    className="font-mono h-[400px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <FormField
+          control={form.control}
+          name="tags"
+          render={({ field }: { field: any }) => (
+            <FormItem>
+              <FormLabel>Tags</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="react, typescript, nextjs"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Enter tags separated by commas
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="seoTitle"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>SEO Title</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Custom title for search engines (optional)"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Leave blank to use the article title
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="seoDescription"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>SEO Description</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Custom description for search engines (optional)"
+                    className="h-[100px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Leave blank to use the excerpt. Max 160 characters.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <Button 
+          type="submit" 
+          disabled={isSubmitting} 
+          className="w-full"
         >
-          <option value="markdown">Markdown</option>
-          <option value="external">External Link</option>
-          <option value="video">Video</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Title
-        </label>
-        <input
-          type="text"
-          {...register("title", { required: true })}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-        />
-      </div>
-
-      {articleType === "external" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            External URL
-          </label>
-          <input
-            type="url"
-            {...register("externalUrl", { required: true })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          />
-        </div>
-      )}
-
-      {articleType === "video" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Video URL
-          </label>
-          <input
-            type="url"
-            {...register("videoUrl", { required: true })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-          />
-        </div>
-      )}
-
-      {articleType === "markdown" && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Content
-          </label>
-          <textarea
-            {...register("content", { required: true })}
-            rows={15}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm font-mono"
-          />
-        </div>
-      )}
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Tags (comma-separated)
-        </label>
-        <input
-          type="text"
-          {...register("tags")}
-          placeholder="react, typescript, nextjs"
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-      >
-        {isSubmitting ? "Creating..." : "Create Article"}
-      </button>
-    </form>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {form.getValues("status") === "published" ? "Publishing..." : "Saving..."}
+            </>
+          ) : (
+            form.getValues("status") === "published" ? "Publish Article" : "Save as Draft"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }

@@ -1,4 +1,3 @@
-// convex/articles.ts
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin, requireUser } from "./auth";
@@ -14,6 +13,8 @@ export const create = mutation({
     externalUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     tags: v.array(v.string()),
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -31,7 +32,10 @@ export const create = mutation({
       views: 0,
       likes: 0,
       readingTime: Math.ceil(args.content.split(/\s+/).length / 200),
-      lastModified: Date.now()
+      lastModified: Date.now(),
+      // Use provided SEO fields or fallback to title/excerpt
+      seoTitle: args.seoTitle || args.title,
+      seoDescription: args.seoDescription || args.excerpt
     });
 
     return article;
@@ -49,6 +53,8 @@ export const update = mutation({
     externalUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     tags: v.array(v.string()),
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -79,6 +85,9 @@ export const update = mutation({
         ? Date.now() 
         : existingArticle.publishedAt,
       readingTime: Math.ceil(data.content.split(/\s+/).length / 200),
+      lastModified: Date.now(),
+      seoTitle: data.seoTitle || data.title,
+      seoDescription: data.seoDescription || data.excerpt,
     });
   },
 });
