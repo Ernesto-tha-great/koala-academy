@@ -33,6 +33,7 @@ const formSchema = z.object({
   type: z.enum(["markdown", "external", "video"]),
   status: z.enum(["draft", "published"]),
   title: z.string().min(1, "Title is required"),
+  headerImage: z.string().optional(),
   excerpt: z.string()
     .min(1, "Excerpt is required")
     .max(300, "Excerpt must be less than 300 characters"),
@@ -74,6 +75,7 @@ export function ArticleForm() {
       type: "markdown",
       status: "draft",
       title: "",
+      headerImage: "",
       excerpt: "",
       content: "",
       tags: "",
@@ -179,6 +181,26 @@ export function ArticleForm() {
             </FormItem>
           )}
         />
+
+        {articleType === "markdown" && (
+          <FormField
+            control={form.control}
+            name="headerImage"
+            render={({ field }: { field: any }) => (
+              <FormItem>
+                <FormLabel>Header Image</FormLabel>
+                <FormControl>
+                  <Input
+                    type="url"
+                    placeholder="https://example.com/image.png"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

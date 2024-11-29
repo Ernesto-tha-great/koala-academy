@@ -7,6 +7,7 @@ export const create = mutation({
   args: {
     title: v.string(),
     content: v.string(),
+    headerImage: v.optional(v.string()),
     excerpt: v.string(),
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
     status: v.union(v.literal("draft"), v.literal("published")),
@@ -47,6 +48,7 @@ export const update = mutation({
     id: v.id("articles"),
     title: v.string(),
     content: v.string(),
+    headerImage: v.optional(v.string()),
     excerpt: v.string(),
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
     status: v.union(v.literal("draft"), v.literal("published")),

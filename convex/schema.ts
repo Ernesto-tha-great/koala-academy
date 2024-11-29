@@ -6,6 +6,7 @@ export default defineSchema({
   articles: defineTable({
     title: v.string(),
     slug: v.string(),
+    headerImage: v.optional(v.string()),
     content: v.string(),
     excerpt: v.string(), // For preview/SEO
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),

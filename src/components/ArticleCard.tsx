@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Doc } from "../../convex/_generated/dataModel";
 import { formatDate } from "@/lib/utils";
+import Image from "next/image";
 
 interface ArticleCardProps {
   article: Doc<"articles">;
@@ -30,8 +31,14 @@ export function ArticleCard({ article }: ArticleCardProps) {
             {formatDate(article.publishedAt!)}
           </span>
         </div>
+
+        {article.headerImage && (
+          <div className="w-full h-48 relative">
+            <Image src={article.headerImage} alt={article.title} fill className="object-cover" />
+          </div>
+        )}
         
-        <h2 className="text-xl font-semibold mb-2 group-hover:text-blue-600">
+        <h2 className="text-xl font-semibold mt-1 mb-2 group-hover:text-blue-600">
           {article.title}
         </h2>
         
