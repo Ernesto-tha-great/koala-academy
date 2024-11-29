@@ -17,3 +17,15 @@ export function formatDate(date: number | Date) {
   
   return distanceToNow;
 }
+
+
+export function getStatusVariant(status: string): "default" | "secondary" | "success" {
+  switch (status) {
+    case "published":
+      return "success";
+    case "draft":
+      return "secondary";
+    default:
+      return "default";
+  }
+}

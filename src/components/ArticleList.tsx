@@ -4,8 +4,14 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ArticleCard } from "./ArticleCard";
 
-export function ArticleList() {
-  const articles = useQuery(api.articles.list, {});
+interface ArticleListProps {
+    selectedTag?: string;
+  }
+
+export function ArticleList({ selectedTag }: ArticleListProps) {
+
+  const articles = useQuery(api.articles.list, { status: "published",
+    tag: selectedTag,});
 
   if (!articles) {
     return (

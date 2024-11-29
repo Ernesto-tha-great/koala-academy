@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import { Doc } from "../../convex/_generated/dataModel";
+import { formatDate } from "@/lib/utils";
 
 interface ArticleCardProps {
   article: Doc<"articles">;
@@ -27,7 +27,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
             </span>
           )}
           <span>
-            {formatDistanceToNow(article.publishedAt!.toString(), { addSuffix: true })}
+            {formatDate(article.publishedAt!)}
           </span>
         </div>
         

@@ -59,7 +59,8 @@ export default defineSchema({
     articleCount: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_name", ["name"]),
+    .index("by_name", ["name"])
+    .index("by_count", ["articleCount"]),
 
   users: defineTable({
     userId: v.string(),
@@ -71,7 +72,8 @@ export default defineSchema({
     lastLogin: v.number(),
   })
     .index("by_email", ["email"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_userId", ["userId"]),
 
   audit_logs: defineTable({
     action: v.string(),
