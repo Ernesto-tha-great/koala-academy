@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
 import {
   ClerkProvider,
-  SignInButton,
-  SignedIn,
-  SignedOut,
-  UserButton
+
 } from '@clerk/nextjs'
+import { Manrope } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { MainNav } from "../components/MainNav";
 import { ConvexClientProvider } from "@/components/providers/convex-provider";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const manrope = Manrope({ 
+  subsets: ['latin'],
+  variable: '--font-manrope',
 });
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
@@ -37,7 +34,7 @@ export default function RootLayout({
     
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${manrope.variable} antialiased`}
       >
         <ClerkProvider>
           <ConvexClientProvider>

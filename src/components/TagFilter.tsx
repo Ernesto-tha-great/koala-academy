@@ -12,7 +12,7 @@ interface TagFilterProps {
 
 export function TagFilter({ selectedTag }: TagFilterProps) {
   const router = useRouter();
-  const tags = useQuery(api.tags.list);
+  const tags = useQuery(api.tags.list, { includeEmpty: true });
 
   if (!tags?.length) return null;
 
