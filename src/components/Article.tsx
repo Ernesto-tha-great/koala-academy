@@ -45,6 +45,12 @@ export function Article({ article }: ArticleProps) {
         </div>
       </header>
 
+      {article.headerImage && (
+        <div className="w-full h-96 relative">
+          <Image src={article.headerImage} alt={article.title} fill className="object-cover" />
+        </div>
+      )}
+
 
       <div className="prose prose-lg max-w-none">
         <ReactMarkdown
@@ -84,23 +90,23 @@ export function Article({ article }: ArticleProps) {
                   </div>
                 );
               },
-            code({ node, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || "");
-              return  match ? (
-                <SyntaxHighlighter
-                  language={match[1]}
-                  style={vscDarkPlus}
-                  PreTag="div"
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
-              ) : (
-                <code className={className} {...props}>
-                  {children}
-                </code>
-              );
-            }
+              code({ node, className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || "");
+                return match ? (
+                  <SyntaxHighlighter
+                    language={match[1]}
+                    style={vscDarkPlus}
+                    PreTag="div"
+                    {...props}
+                  >
+                    {String(children).replace(/\n$/, "")}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code className="bg-gray-100 text-red-500 px-1 py-0.5 rounded font-mono text-sm" {...props}>
+                    {children}
+                  </code>
+                );
+              },
           }}
         >
           {article.content}
