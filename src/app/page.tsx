@@ -10,7 +10,6 @@ export default function Home() {
         <BlogHeader />
         <section>
         <div className="flex flex-col gap-6 my-8">
-          <h1 className="text-2xl font-bold font-manrope">Article of the week</h1>
           <ArticleOfTheWeek />
         </div>
         </section>

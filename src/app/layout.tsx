@@ -34,7 +34,7 @@ export default function RootLayout({
     
     <html lang="en">
       <body
-        className={`${manrope.variable} antialiased`}
+        className={`${manrope.variable} ${geistMono.variable} antialiased`}
       >
         <ClerkProvider>
           <ConvexClientProvider>

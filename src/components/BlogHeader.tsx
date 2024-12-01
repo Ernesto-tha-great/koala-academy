@@ -6,7 +6,7 @@ export default function BlogHeader() {
     <div 
     className="relative bg-cover bg-center rounded-xl font-manrope "
     style={{
-      backgroundImage: 'url("/bookkoala.svg")'
+      backgroundImage: 'url("/koalaStreet.svg")'
     }}
   >
 
