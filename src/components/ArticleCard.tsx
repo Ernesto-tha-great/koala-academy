@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Doc } from "../../convex/_generated/dataModel";
 import { formatDate } from "@/lib/utils";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 
 interface ArticleCardProps {
   article: Doc<"articles">;
@@ -11,52 +12,65 @@ export function ArticleCard({ article }: ArticleCardProps) {
   return (
     <Link 
       href={`/blog/${article.slug}`}
-      className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border-[0.5px] border-green-200 h-[450px]"
+      className="group flex items-start gap-8 p-6 shadow-lime-200 shadow hover:bg-green-50/50 transition-all rounded-lg border-l-2 border-transparent hover:border-green-500"
     >
-      <div className="p-6 flex flex-col h-full">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+      {/* Content Section */}
+      <div className="flex-1 space-y-3">
+        {/* Tags & Meta Info */}
+        <div className="flex items-center gap-2 text-sm text-emerald-700">
           {article.type === "external" && (
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+            <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full font-medium">
               External
             </span>
           )}
           {article.type === "video" && (
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full">
+            <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full font-medium">
               Video
             </span>
           )}
-          <span>
-            {formatDate(article.publishedAt!)}
-          </span>
+          <span className="text-emerald-600">{formatDate(article.publishedAt!)}</span>
+          <span className="text-emerald-300">•</span>
+          <span className="text-emerald-600">{article.readingTime} min read</span>
         </div>
 
-        {article.headerImage && (
-          <div className="w-full h-64 relative mb-4">
-            <Image src={article.headerImage} alt={article.title} fill className="object-cover rounded-lg" />
-          </div>
-        )}
-        
-        <h2 className="text-xl font-semibold mt-1 mb-2 group-hover:text-[#1fb859] font-manrope">
+        {/* Title */}
+        <h2 className="text-xl font-semibold text-gray-800 group-hover:text-emerald-700 font-manrope transition-colors">
           {article.title}
         </h2>
-        
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span>{article.readingTime} min read</span>
-          <span>•</span>
-          <span>{article.likes} likes</span>
-        </div>
 
-        <div className="mt-auto flex gap-2">
+        {/* Tags */}
+        <div className="flex gap-2">
           {article.tags.map((tag) => (
             <span 
               key={tag}
-              className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-sm"
+              className="px-2 py-1 bg-green-100/50 text-emerald-700 rounded-full text-sm font-medium border border-emerald-100"
             >
               {tag}
             </span>
           ))}
         </div>
+
+        {/* Read More Link */}
+        <div className="pt-2">
+          <span className="inline-flex items-center gap-2 text-sm text-emerald-600 font-medium group-hover:text-emerald-700 group-hover:gap-3 transition-all">
+            Read more
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </span>
+        </div>
       </div>
+
+      {/* Image Section */}
+      {article.headerImage && (
+        <div className="relative w-64 h-48 rounded-lg overflow-hidden flex-shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent z-10" />
+          <Image 
+            src={article.headerImage} 
+            alt={article.title} 
+            fill 
+            className="object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300" 
+          />
+        </div>
+      )}
     </Link>
   );
 }

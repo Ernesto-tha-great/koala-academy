@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ArticleList } from "../../components/ArticleList";
 import { TagFilter } from "../../components/TagFilter";
-import { BlogHeader } from "../../components/BlogHeader";
+import BlogHeader from "../../components/BlogHeader";
 import { ArticleListSkeleton } from "@/components/ArticleListSkeleton";
 
 export default function BlogPage({
