@@ -43,7 +43,7 @@ export default function RootLayout({
             {children}
             
             <Toaster />
-            <Footer />
+            {/* <Footer /> */}
           </ConvexClientProvider>
         </ClerkProvider>
       </body>

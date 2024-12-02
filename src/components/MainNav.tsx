@@ -24,7 +24,7 @@ export function MainNav() {
           <div className="flex items-center gap-2">
             <Image src="/morphLogo.svg" alt="bookkoala" width={18} height={18} />
           <Link href="/" className="text-xl font-semibold font-manrope ">
-            Morph Academy
+            Koala Academy
           </Link>
 
           </div>
@@ -37,7 +37,7 @@ export function MainNav() {
               Articles
             </Link>
             <Link 
-              href="/" 
+              href="/guides" 
               className="text-sm font-medium font-parkinsans hover:text-primary"
             >
               Guides
