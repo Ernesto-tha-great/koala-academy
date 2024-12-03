@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getBySlug } from "@/lib/articles";
-import { Article } from "../../../components/Article";
-import { CommentSection } from "../../../components/CommentSection";
-import { RelatedArticles } from "../../../components/RelatedArticles";
+import { Article } from "../../../../components/Article";
+import { CommentSection } from "../../../../components/CommentSection";
+import { RelatedArticles } from "../../../../components/RelatedArticles";
 
 interface ArticlePageProps {
   params: {

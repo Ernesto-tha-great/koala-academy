@@ -9,6 +9,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { MainNav } from "../components/MainNav";
 import { ConvexClientProvider } from "@/components/providers/convex-provider";
+import Footer from "@/components/Footer";
 
 const manrope = Manrope({ 
   subsets: ['latin'],
@@ -40,7 +41,9 @@ export default function RootLayout({
           <ConvexClientProvider>
             <MainNav />
             {children}
+            
             <Toaster />
+            {/* <Footer /> */}
           </ConvexClientProvider>
         </ClerkProvider>
       </body>

@@ -213,3 +213,18 @@ export const incrementViews = mutation({
     });
   },
 });
+
+export const trending = query({
+    handler: async (ctx) => {
+      const articles = await ctx.db
+        .query("articles")
+        .filter((q) => q.eq(q.field("status"), "published"))
+        .collect(); // Collect all published articles
+  
+      // Sort articles by views in descending order
+      articles.sort((a, b) => b.views - a.views);
+  
+      // Take the top 5 articles
+      return articles.slice(0, 5);
+    },
+  });
