@@ -44,7 +44,7 @@ export function MainNav() {
             </Link>
 
             <Link 
-              href="/" 
+              href="/morph" 
               className="text-sm font-medium font-parkinsans hover:text-primary"
             >
               Morph
