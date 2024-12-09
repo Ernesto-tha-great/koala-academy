@@ -176,6 +176,25 @@ export const getBySlug = query({
   },
 });
 
+export const getById = query({
+    args: { id: v.id("articles") },
+    handler: async (ctx, args) => {
+        const article = await ctx.db
+        .query("articles")
+        .filter(q => q.eq(q.field("_id"), args.id))
+        .first();
+
+        if (!article) return new ConvexError("Article not found");;
+
+        // const author = await ctx.db
+        // .query("users")
+        // .filter(q => q.eq(q.field("userId"), article.authorId))
+        // .first();
+
+        return { ...article };
+    }
+})
+
 export const getRelated = query({
   args: {
     articleId: v.id("articles"),

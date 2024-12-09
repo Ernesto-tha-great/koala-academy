@@ -57,7 +57,9 @@ export function AdminSidebar() {
   return (
     <div className="hidden lg:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-background">
       <div className="p-6">
-        <h1 className="text-2xl font-bold">Morph Blog</h1>
+        <Link href="/">
+        <h1 className="text-2xl font-bold">Koala Academy</h1>
+        </Link>
       </div>
       <nav className="flex-1 px-4 space-y-1">
         {navigation.map((item) => {

@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast"
-
+import { Loader2, Link2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import ContentPreview from "./ContentPreview";
+import { Doc, Id } from "../../../convex/_generated/dataModel";
 
 const formSchema = z.object({
   type: z.enum(["markdown", "external", "video"]),
@@ -64,10 +67,31 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface ScrapedArticle {
+  title: string;
+  content: string;
+  excerpt: string;
+  headerImage?: string;
+  tags: string[];
+  canonicalUrl: string;
+  seoTitle?: string;
+  seoDescription?: string;
+}
+
 export function ArticleForm() {
   const router = useRouter();
-  const { toast } = useToast()
+  const { toast } = useToast();
   const createArticle = useMutation(api.articles.create);
+
+
+  const [isImporting, setIsImporting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | undefined>();
+  const previewArticle = useQuery(api.articles.getById, 
+    previewId ? { id: previewId as Id<"articles"> } : "skip"
+  );
+  const [importError, setImportError] = useState<string | null>(null);
+
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -78,7 +102,7 @@ export function ArticleForm() {
       headerImage: "",
       excerpt: "",
       content: "",
-      tags: "",
+      tags: [],
       seoTitle: "",
       seoDescription: "",
     },
@@ -87,32 +111,117 @@ export function ArticleForm() {
   const articleType = form.watch("type");
   const isSubmitting = form.formState.isSubmitting;
 
-  const onSubmit = async (data: FormData) => {
+  const handleImport = async (url: string) => {
+    if (!url) return;
+    
     try {
-      await createArticle({
+      setIsImporting(true);
+      
+      const response = await fetch('/api/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to import article');
+      }
+  
+      const article = await response.json();
+      console.log("article", article);
+  
+      // Update form fields with imported content
+      form.setValue('title', article.title);
+      form.setValue('content', article.content);
+      form.setValue('excerpt', article.excerpt);
+      form.setValue('tags', article.tags.join(', '));
+      form.setValue('externalUrl', article.canonicalUrl);
+      
+      if (article.headerImage) {
+        form.setValue('headerImage', article.headerImage);
+      }
+      if (article.seoTitle) {
+        form.setValue('seoTitle', article.seoTitle);
+      }
+      if (article.seoDescription) {
+        form.setValue('seoDescription', article.seoDescription);
+      }
+  
+      toast({
+        title: "Article imported",
+        description: "Content has been imported. You can now edit before saving.",
+      });
+    } catch (error) {
+      console.error('Error importing article:', error);
+      toast({
+        title: "Import failed",
+        description: "Failed to import article. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  
+
+  const onPreview = async (data: FormData) => {
+    
+    setPreviewId(undefined);
+    setPreviewOpen(false);
+
+    try {
+     const newArticle = await createArticle({
         ...data,
-        // Ensure content is empty if not markdown
-        content: data.type === "markdown" ? data.content || "" : "",
-        // Convert tags string to array (handled by zod transform)
+        status: "draft",
+        content: data.content || "",
         tags: data.tags,
-        // Clean up optional fields
         externalUrl: data.type === "external" ? data.externalUrl : undefined,
         videoUrl: data.type === "video" ? data.videoUrl : undefined,
       });
 
       toast({
         title: "Success",
-        description: data.status === "published" 
-          ? "Article published successfully" 
-          : "Draft saved successfully",
+        description: "Draft saved successfully",
+      });
+
+        console.log(newArticle);
+        setPreviewId(newArticle);
+      setPreviewOpen(true);
+
+      
+    } catch (error) {
+      console.error("Failed save draft:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onPublish = async (data: FormData) => {
+    try {
+      await createArticle({
+        ...data,
+        status: "published",
+        content: data.content || "",
+        tags: data.tags,
+        externalUrl: data.type === "external" ? data.externalUrl : undefined,
+        videoUrl: data.type === "video" ? data.videoUrl : undefined,
+      });
+
+      toast({
+        title: "Success",
+        description: "Article published successfully",
       });
 
       router.push("/admin");
     } catch (error) {
-      console.error("Failed to create article:", error);
+      console.error("Failed to publish article:", error);
       toast({
         title: "Error",
-        description: "Failed to create article. Please try again.",
+        description: "Failed to publish article. Please try again.",
         variant: "destructive",
       });
     }
@@ -120,7 +229,7 @@ export function ArticleForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onPreview)} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -137,7 +246,7 @@ export function ArticleForm() {
                   <SelectContent>
                     <SelectItem value="markdown">Markdown</SelectItem>
                     <SelectItem value="external">External Link</SelectItem>
-                    <SelectItem value="video">Video</SelectItem>
+                    {/* <SelectItem value="video">Video</SelectItem> */}
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -148,7 +257,7 @@ export function ArticleForm() {
           <FormField
             control={form.control}
             name="status"
-            render={({ field }: { field: any }  ) => (
+            render={({ field }: { field: any }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -159,7 +268,7 @@ export function ArticleForm() {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
+                    <SelectItem value="published">Publish</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -171,7 +280,7 @@ export function ArticleForm() {
         <FormField
           control={form.control}
           name="title"
-          render={({ field }: { field: any }    ) => (
+          render={({ field }: { field: any }) => (
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
@@ -182,7 +291,56 @@ export function ArticleForm() {
           )}
         />
 
-        {articleType === "markdown" && (
+        {articleType === "external" && (
+          <FormField
+            control={form.control}
+            name="externalUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>External URL</FormLabel>
+                <div className="flex gap-2">
+                  <FormControl>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => field.value && handleImport(field.value)}
+                    disabled={isImporting || !field.value}
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="mr-2 h-4 w-4" />
+                        Import
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <FormDescription>
+                  Paste a URL to import content from an external article
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {importError && (
+          <Alert variant="destructive">
+            <AlertDescription>{importError}</AlertDescription>
+          </Alert>
+        )}
+
+        {articleType === "markdown" || articleType === "external" && (
           <FormField
             control={form.control}
             name="headerImage"
@@ -223,26 +381,6 @@ export function ArticleForm() {
           )}
         />
 
-        {articleType === "external" && (
-          <FormField
-            control={form.control}
-            name="externalUrl"
-            render={({ field }: { field: any }) => (
-              <FormItem>
-                <FormLabel>External URL</FormLabel>
-                <FormControl>
-                  <Input
-                    type="url"
-                    placeholder="https://example.com"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
         {articleType === "video" && (
           <FormField
             control={form.control}
@@ -263,7 +401,7 @@ export function ArticleForm() {
           />
         )}
 
-        {articleType === "markdown" && (
+        {articleType === "markdown" || articleType === "external" && (
           <FormField
             control={form.control}
             name="content"
@@ -346,20 +484,46 @@ export function ArticleForm() {
           />
         </div>
 
-        <Button 
-          type="submit" 
-          disabled={isSubmitting} 
-          className="w-full"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {form.getValues("status") === "published" ? "Publishing..." : "Saving..."}
-            </>
-          ) : (
-            form.getValues("status") === "published" ? "Publish Article" : "Save as Draft"
-          )}
-        </Button>
+        {form.getValues("status") === "draft" ? (
+                 <Button 
+                 type="submit"
+                   disabled={isSubmitting} 
+                   className="w-full bg-[#0f603c]"
+                 >
+                   {isSubmitting ? (
+                     <>
+                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                       Previewing...
+                     </>
+                   ) : (
+                     "Preview Article"
+                  )}
+                 </Button>
+        ) : (
+            <Button 
+            type="submit" 
+            disabled={isSubmitting} 
+            className="w-full"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+               "Publish Article"
+            )}
+          </Button>
+        )}
+
+        {   previewArticle && previewOpen && (
+          <ContentPreview 
+            article={{...previewArticle} as Doc<"articles">} 
+            open={previewOpen} 
+            onOpenChange={setPreviewOpen}
+          />
+        )}
+
       </form>
     </Form>
   );
