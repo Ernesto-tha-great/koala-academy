@@ -13,7 +13,7 @@ export default function BlogHeader() {
       <div className="relative w-[1200px] h-[600px] overflow-hidden ">
         <div className="absolute bottom-12 left-12 max-w-xl text-white">
           <h1 className="text-5xl font-bold mb-3">
-            Learn to build like an engineer
+            Learn to build for the consumer
           </h1>
           <p className="text-sm text-gray-300 mb-6">
             Join Morph Academy and learn from the best. Our platform is designed to help you learn the technical skills you need to succeed in your career.
