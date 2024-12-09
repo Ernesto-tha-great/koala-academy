@@ -168,24 +168,33 @@ export class ArticleParser {
 
     // Enhanced code block handling
     this.turndownService.addRule('fencedCodeBlock', {
-      filter: (node, options) => {
-        return (
-          node.nodeName === 'PRE' ||
-          (node.nodeName === 'CODE' && node.parentNode?.nodeName !== 'PRE')
-        );
-      },
-      replacement: (content, node, options) => {
-        const context: CodeBlockContext = {
-          precedingText: this.getPrecedingText(node),
-          content: this.cleanCodeContent(content),
-          classNames: Array.from((node as any).classList || []),
-          parentContent: node.parentNode?.textContent || ''
-        };
+        filter: (node) => {
+          if (node.nodeName !== 'PRE') return false;
+          
+          // Check if content starts with ``` or is within a pre tag
+          const content = node.textContent || '';
+          return content.startsWith('```') || node.nodeName === 'PRE';
+        },
+        replacement: (content, node) => {
+          const context: CodeBlockContext = {
+            precedingText: this.getPrecedingText(node),
+            content: this.cleanCodeContent(content),
+            classNames: Array.from((node as any).classList || []),
+            parentContent: node.parentNode?.textContent || ''
+          };
+    
+          const language = this.detectLanguage(context);
+          return `\n\`\`\`${language}\n${context.content}\n\`\`\`\n`;
+        }
+      });
 
-        const language = this.detectLanguage(context);
-        return `\n\`\`\`${language}\n${context.content}\n\`\`\`\n`;
-      }
-    });
+    // Inline code handling
+    this.turndownService.addRule('inlineCode', {
+        filter: (node) => 
+          node.nodeName === 'CODE' && 
+          (!node.parentNode || node.parentNode.nodeName !== 'PRE'),
+        replacement: (content) => `\`${content}\``
+      });
 
     // Better image handling
     this.turndownService.addRule('images', {
