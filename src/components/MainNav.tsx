@@ -54,7 +54,7 @@ export function MainNav() {
               <div className="flex items-center gap-4">
                 {clerkUser ? (
                   <>
-                    {isAdmin && (
+                    {/* {isAdmin && (
                       <>
                         <Link href="/admin/articles/new">
                           <Button size="sm" variant="ghost" className="gap-2">
@@ -69,7 +69,21 @@ export function MainNav() {
                           Dashboard
                         </Link>
                       </>
-                    )}
+                    )} */}
+                    
+                        <Link href="/admin/articles/new">
+                          <Button size="sm" variant="ghost" className="gap-2">
+                            <PenSquare className="h-4 w-4" />
+                            Write
+                          </Button>
+                        </Link>
+                        <Link 
+                          href="/admin"
+                          className="text-sm font-medium hover:text-primary"
+                        >
+                          Dashboard
+                        </Link>
+                    
                     <UserButton afterSignOutUrl="/" />
                   </>
                 ) : (

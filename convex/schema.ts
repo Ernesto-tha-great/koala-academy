@@ -67,10 +67,12 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(),
     email: v.string(),
-    role: v.union(v.literal("admin"), v.literal("author"), v.literal("user")),
+    role: v.union(v.literal("admin"), v.literal("user")),
     avatarUrl: v.optional(v.string()),
     bio: v.optional(v.string()),
-    lastLogin: v.number(),
+    lastLogin: v.optional(v.number()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number())
   })
     .index("by_email", ["email"])
     .index("by_role", ["role"])
@@ -84,4 +86,14 @@ export default defineSchema({
     timestamp: v.number(),
     details: v.string(),
   }).index("by_timestamp", ["timestamp"]),
+
+  articleViews: defineTable({
+    articleId: v.id("articles"),
+    userId: v.optional(v.string()), // optional to track anonymous views
+    viewedAt: v.number(),
+    date: v.string(), // YYYY-MM-DD format for daily stats
+  })
+    .index("by_article", ["articleId"])
+    .index("by_date", ["date"])
+    .index("by_article_and_date", ["articleId", "date"]),
 });

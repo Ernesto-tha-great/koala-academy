@@ -12,6 +12,8 @@ import {
   Settings,
   PenTool,
 } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 const navigation = [
   {
@@ -53,6 +55,7 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  // const users = useQuery(api.auth);
 
   return (
     <div className="hidden lg:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-background">

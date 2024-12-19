@@ -14,14 +14,7 @@ const nextConfig: NextConfig = {
       'dev-to-uploads.s3.amazonaws.com',
       'assets.dev.to'
     ],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'miro.medium.com',
-        port: '',
-        pathname: '**',
-      },
-    ],
+    
   },
 };
 

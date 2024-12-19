@@ -48,7 +48,7 @@ export function Article({ article }: ArticleProps) {
 
       {article.headerImage && (
         <div className="w-full h-96 relative">
-          <Image src={article.headerImage} alt={article.title} fill className="object-cover" />
+          <Image  src={article.headerImage} alt={article.title} fill className="object-cover" />
         </div>
       )}
 
@@ -83,6 +83,7 @@ export function Article({ article }: ArticleProps) {
               
               // Clean up the URL if it contains width/height parameters
               const cleanSrc = src.replace(/\/width=\d+,height=\d+,/, '/');
+              console.log(cleanSrc);
               
               return (
                 <div className="my-4">
@@ -92,7 +93,7 @@ export function Article({ article }: ArticleProps) {
                     width={800}
                     height={400}
                     className="rounded-lg"
-                    unoptimized={src.startsWith('http')}
+                    // unoptimized={src.startsWith('http')}
                     loading="lazy"
                   />
                 </div>

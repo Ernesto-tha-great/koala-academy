@@ -74,6 +74,8 @@ export const createOrGetUser = mutation({
       name: identity.name || "Anonymous",
       role: ADMIN_EMAILS.includes(identity.email!) ? "admin" : "user",
       lastLogin: Date.now(), // Add required lastLogin field
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
   },
 });
