@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin, requireUser } from "./auth";
 import { ConvexError } from "convex/values";
+import { formatISO } from "date-fns";
+import { Id } from "./_generated/dataModel";
 
 export const create = mutation({
   args: {
@@ -245,5 +247,93 @@ export const trending = query({
   
       // Take the top 5 articles
       return articles.slice(0, 5);
+    },
+  });
+
+
+  export const recordView = mutation({
+    args: { articleId: v.id("articles") },
+    handler: async (ctx, args) => {
+      const identity = await ctx.auth.getUserIdentity();
+      const timestamp = Date.now();
+      const date = formatISO(timestamp, { representation: 'date' });
+  
+      // Record the view
+      await ctx.db.insert("articleViews", {
+        articleId: args.articleId,
+        userId: identity?.subject,
+        viewedAt: timestamp,
+        date,
+      });
+  
+      // Update total views on article
+      const article = await ctx.db.get(args.articleId);
+      if (article) {
+        await ctx.db.patch(args.articleId, {
+          views: (article.views || 0) + 1,
+        });
+      }
+    },
+  });
+  
+  // Get top articles by views for a specific date
+  export const getTopArticles = query({
+    args: {
+      date: v.optional(v.string()), // YYYY-MM-DD format
+      limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+      const date = args.date || formatISO(new Date(), { representation: 'date' });
+      const limit = args.limit || 5;
+  
+      // Get view counts for the date
+      const views = await ctx.db
+        .query("articleViews")
+        .withIndex("by_date", (q) => q.eq("date", date))
+        .collect();
+  
+      // Count views per article
+      const viewCounts = views.reduce((acc, view) => {
+        acc[view.articleId] = (acc[view.articleId] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+  
+      // Get article details and sort by views
+      const articles = await Promise.all(
+        Object.entries(viewCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, limit)
+          .map(async ([articleId]) => {
+            const article = await ctx.db.get(articleId as Id<"articles">);
+            return {
+              ...article,
+              dailyViews: viewCounts[articleId],
+            };
+          })
+      );
+  
+      return articles.filter(Boolean);
+    },
+  });
+  
+  // Get view stats for a specific article
+  export const getArticleStats = query({
+    args: { articleId: v.id("articles") },
+    handler: async (ctx, args) => {
+      const views = await ctx.db
+        .query("articleViews")
+        .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+        .collect();
+  
+      // Group views by date
+      const dailyViews = views.reduce((acc, view) => {
+        acc[view.date] = (acc[view.date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+  
+      return {
+        totalViews: views.length,
+        dailyViews,
+      };
     },
   });

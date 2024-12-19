@@ -37,7 +37,7 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider>
+        <ClerkProvider >
           <ConvexClientProvider>
             <MainNav />
             {children}

@@ -16,6 +16,7 @@ interface ArticleProps {
 }
 
 export function Article({ article }: ArticleProps) {
+    
   return (
     <article className="space-y-8">
       <header className="space-y-4">
@@ -47,14 +48,14 @@ export function Article({ article }: ArticleProps) {
 
       {article.headerImage && (
         <div className="w-full h-96 relative">
-          <Image src={article.headerImage} alt={article.title} fill className="object-cover" />
+          <Image  src={article.headerImage} alt={article.title} fill className="object-cover" />
         </div>
       )}
 
 
       <div className="prose prose-lg max-w-none">
         <ReactMarkdown
-          rehypePlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, remarkGfm]}
           components={{
             h1: ({node, children, ...props}) => (
                 <h1 className="text-4xl font-bold mt-8 mb-4" {...props}>{children}</h1>
@@ -78,35 +79,43 @@ export function Article({ article }: ArticleProps) {
                 <p className="my-4" {...props}>{children}</p>
               ),
             img: ({node, src, alt, ...props}) => {
-                return (
-                  <div className="my-4">
-                    <Image
-                      src={src || ""}
-                      alt={alt || "Article image"}
-                      width={800}
-                      height={400}
-                      className="rounded-lg"
-                    />
-                  </div>
-                );
-              },
-              code({ node, className, children, ...props }) {
-                const match = /language-(\w+)/.exec(className || "");
-                return match ? (
-                  <SyntaxHighlighter
-                    language={match[1]}
-                    style={vscDarkPlus}
-                    PreTag="div"
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, "")}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className="bg-gray-100 text-red-500 px-1 py-0.5 rounded font-mono text-sm" {...props}>
-                    {children}
-                  </code>
-                );
-              },
+              if (!src) return null;
+              
+              // Clean up the URL if it contains width/height parameters
+              const cleanSrc = src.replace(/\/width=\d+,height=\d+,/, '/');
+              console.log(cleanSrc);
+              
+              return (
+                <div className="my-4">
+                  <Image
+                    src={cleanSrc}
+                    alt={alt || "Article image"}
+                    width={800}
+                    height={400}
+                    className="rounded-lg"
+                    // unoptimized={src.startsWith('http')}
+                    loading="lazy"
+                  />
+                </div>
+              );
+            },
+            code({ node, className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || "");
+              return match ? (
+                <SyntaxHighlighter
+                  language={match[1]}
+                  style={vscDarkPlus}
+                  PreTag="div"
+                  {...props}
+                >
+                  {String(children).replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              ) : (
+                <code className="bg-gray-100 text-red-500 px-1 py-0.5 rounded font-mono text-sm" {...props}>
+                  {children}
+                </code>
+              );
+            },
           }}
         >
           {article.content}

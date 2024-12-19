@@ -1,12 +1,28 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { getAuth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../convex/_generated/api";
 
-export default clerkMiddleware();
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+const isProtectedRoute = createRouteMatcher(['/locker(.*)'])
+
+export default clerkMiddleware(async (auth, req) => { // doesnt work
+  if (isProtectedRoute(req)) {
+    const { userId } = await auth();
+    console.log("lomaaa",userId);
+    if (!userId) return NextResponse.redirect(new URL('/sign-in', req.url));
+    
+    try {
+      const isAdmin = await convex.query(api.users.isAdmin);
+      if (!isAdmin) return NextResponse.redirect(new URL('/', req.url));
+    } catch (error) {
+      console.error('Admin check failed:', error);
+      return NextResponse.redirect(new URL('/', req.url));
+    }
+  }
+})
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };

@@ -12,6 +12,8 @@ import {
   Settings,
   PenTool,
 } from "lucide-react";
+import { useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 const navigation = [
   {
@@ -26,24 +28,24 @@ const navigation = [
   },
   {
     name: "Editor",
-    href: "/admin/editor/new",
+    href: "/admin/articles/new",
     icon: PenTool,
   },
-  {
-    name: "Comments",
-    href: "/admin/comments",
-    icon: MessageSquare,
-  },
+  // {
+  //   name: "Comments",
+  //   href: "/admin/comments",
+  //   icon: MessageSquare,
+  // },
   {
     name: "Users",
     href: "/admin/users",
     icon: Users,
   },
-  {
-    name: "Tags",
-    href: "/admin/tags",
-    icon: Tags,
-  },
+  // {
+  //   name: "Tags",
+  //   href: "/admin/tags",
+  //   icon: Tags,
+  // },
   {
     name: "Settings",
     href: "/admin/settings",
@@ -53,6 +55,7 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  // const users = useQuery(api.auth);
 
   return (
     <div className="hidden lg:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-background">
@@ -63,7 +66,7 @@ export function AdminSidebar() {
       </div>
       <nav className="flex-1 px-4 space-y-1">
         {navigation.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}

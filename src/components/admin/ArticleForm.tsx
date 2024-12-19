@@ -128,7 +128,7 @@ export function ArticleForm() {
       }
   
       const article = await response.json();
-      console.log("article", article);
+    
   
       // Update form fields with imported content
       form.setValue('title', article.title);
@@ -185,7 +185,7 @@ export function ArticleForm() {
         description: "Draft saved successfully",
       });
 
-        console.log(newArticle);
+        
         setPreviewId(newArticle);
       setPreviewOpen(true);
 
@@ -229,7 +229,7 @@ export function ArticleForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onPreview)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onPreview)} className="space-y-6 mt-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}

@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { getBySlug } from "@/lib/articles";
 import { Article } from "../../../../components/Article";
 import { CommentSection } from "../../../../components/CommentSection";
 import { RelatedArticles } from "../../../../components/RelatedArticles";
+import { useMutation } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
 
 interface ArticlePageProps {
   params: {
@@ -11,9 +13,18 @@ interface ArticlePageProps {
   };
 }
 
-export default async function ArticlePage({ params }: ArticlePageProps) {
-  const article = await getBySlug(params.slug);
+export default async function ArticlePage({ params: { slug } }: ArticlePageProps) {
+  const article = await getBySlug(slug);
+  const recordView = useMutation(api.articles.recordView);
+
+
   if (!article) notFound();
+
+  useEffect(() => {
+    if (article?._id) {
+      recordView({ articleId: article._id });
+    }
+  }, [article?._id]);
 
   return (
     <div className="min-h-screen bg-background">

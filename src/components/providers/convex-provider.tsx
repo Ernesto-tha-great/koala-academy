@@ -5,19 +5,25 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient, useMutation } from "convex/react";
 import { useEffect } from "react";
 import { api } from "../../../convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 function InitUser({ children }: { children: React.ReactNode }) {
   const { isLoaded, userId } = useAuth();
-  const createUser = useMutation(api.auth.createOrGetUser);
+  const { user } = useUser();
+  const createOrUpdateUser = useMutation(api.users.createOrUpdate);
 
   useEffect(() => {
-    if (isLoaded && userId) {
-      createUser()
-        .catch(console.error);
+    if (isLoaded && user) {
+      createOrUpdateUser({
+        userId: user.id,
+        email: user.primaryEmailAddress?.emailAddress || "",
+        name: user.fullName || "Anonymous",
+        admin: true,
+      }).catch(console.error);
     }
-  }, [isLoaded, userId, createUser]);
+  }, [isLoaded, user, createOrUpdateUser]);
 
   return children;
 }
@@ -29,7 +35,7 @@ export function ConvexClientProvider({
 }) {
   return (
     <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-      <InitUser>{children}</InitUser>``
+      <InitUser>{children}</InitUser>
     </ConvexProviderWithClerk>
   );
 }
