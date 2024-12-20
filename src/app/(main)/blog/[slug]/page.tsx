@@ -1,30 +1,52 @@
-import { notFound } from "next/navigation";
-import { Suspense, useEffect } from "react";
+'use client'
+
+import React, { useEffect, useState } from "react";
+import { notFound, useParams } from "next/navigation";
+import { Suspense } from "react";
 import { getBySlug } from "@/lib/articles";
+import { useMutation } from "convex/react";
 import { Article } from "../../../../components/Article";
 import { CommentSection } from "../../../../components/CommentSection";
 import { RelatedArticles } from "../../../../components/RelatedArticles";
-import { useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 
-interface ArticlePageProps {
-  params: {
-    slug: string;
-  };
-}
 
-export default async function ArticlePage({ params: { slug } }: ArticlePageProps) {
-  const article = await getBySlug(slug);
+
+export default function ArticlePage() {
+  const params = useParams();
+  const [article, setArticle] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const recordView = useMutation(api.articles.recordView);
 
 
-  if (!article) notFound();
-
   useEffect(() => {
-    if (article?._id) {
-      recordView({ articleId: article._id });
+    async function loadArticle() {
+      if (!params.slug) return;
+      
+      try {
+        const data = await getBySlug(params.slug as string);
+        if (!data) {
+          notFound();
+        }
+        setArticle(data);
+        await recordView({ articleId: data._id });
+      } catch (error) {
+        console.error('Failed to load article:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [article?._id]);
+
+    loadArticle();
+  }, [params.slug]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!article) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

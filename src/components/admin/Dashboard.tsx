@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, MessageSquare, Eye } from "lucide-react";
 import { RecentArticles } from "./RecentArticles";
 import { RecentComments } from "./RecentComments";
+import { TopArticles } from "./TopArticles";
 
 interface DashboardStat {
   title: string;
@@ -65,6 +66,8 @@ export function Dashboard() {
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
       <RecentArticles />
       {/* <RecentComments /> */}
+
+      <TopArticles />
     </div>
   </div>
   );

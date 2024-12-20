@@ -186,14 +186,14 @@ export const getById = query({
         .filter(q => q.eq(q.field("_id"), args.id))
         .first();
 
-        if (!article) return new ConvexError("Article not found");;
+        if (!article) return null;
 
-        // const author = await ctx.db
-        // .query("users")
-        // .filter(q => q.eq(q.field("userId"), article.authorId))
-        // .first();
+        const author = await ctx.db
+        .query("users")
+        .filter(q => q.eq(q.field("userId"), article.authorId))
+        .first();
 
-        return { ...article };
+        return { ...article, author };
     }
 })
 
@@ -221,19 +221,8 @@ export const getRelated = query({
   },
 });
 
-export const incrementViews = mutation({
-  args: { id: v.id("articles") },
-  handler: async (ctx, args) => {
-    const article = await ctx.db.get(args.id);
-    if (!article) {
-      throw new ConvexError("Article not found");
-    }
 
-    await ctx.db.patch(args.id, {
-      views: (article.views ?? 0) + 1,
-    });
-  },
-});
+
 
 export const trending = query({
     handler: async (ctx) => {
@@ -258,7 +247,26 @@ export const trending = query({
       const timestamp = Date.now();
       const date = formatISO(timestamp, { representation: 'date' });
   
-      // Record the view
+      // Single query to check for recent views from this user
+      const recentView = await ctx.db
+        .query("articleViews")
+        .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+        .filter((q) => {
+          const userCheck = identity?.subject 
+            ? q.eq(q.field("userId"), identity.subject)
+            : q.eq(q.field("userId"), undefined);
+          return q.and(
+            userCheck,
+            q.gt(q.field("viewedAt"), timestamp - 300000)
+          );
+        })
+        .first();
+  
+      if (recentView) {
+        return; // Skip if recent view exists
+      }
+  
+      // Record new view and increment article counter in one transaction
       await ctx.db.insert("articleViews", {
         articleId: args.articleId,
         userId: identity?.subject,
@@ -266,16 +274,13 @@ export const trending = query({
         date,
       });
   
-      // Update total views on article
+      // Use atomic increment for article views
       const article = await ctx.db.get(args.articleId);
-      if (article) {
-        await ctx.db.patch(args.articleId, {
-          views: (article.views || 0) + 1,
-        });
-      }
+      await ctx.db.patch(args.articleId, {
+        views: (article?.views ?? 0) + 1
+      });
     },
   });
-  
   // Get top articles by views for a specific date
   export const getTopArticles = query({
     args: {
