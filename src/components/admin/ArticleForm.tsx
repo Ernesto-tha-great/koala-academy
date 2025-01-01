@@ -41,6 +41,7 @@ const formSchema = z.object({
     .min(1, "Excerpt is required")
     .max(300, "Excerpt must be less than 300 characters"),
   content: z.string().optional(),
+  category: z.enum(["article", "guide", "morph"]),
   externalUrl: z.string().url().optional(),
   videoUrl: z.string().url().optional(),
   tags: z.string().transform((str) => 
@@ -98,6 +99,7 @@ export function ArticleForm() {
     defaultValues: {
       type: "markdown",
       status: "draft",
+      category: "article",
       title: "",
       headerImage: "",
       excerpt: "",
@@ -133,7 +135,7 @@ export function ArticleForm() {
       // Update form fields with imported content
       form.setValue('title', article.title);
       form.setValue('content', article.content);
-      form.setValue('excerpt', article.excerpt);
+      form.setValue('excerpt', article.excerpt.slice(0, 280));
       form.setValue('tags', article.tags.join(', '));
       form.setValue('externalUrl', article.canonicalUrl);
       
@@ -144,7 +146,7 @@ export function ArticleForm() {
         form.setValue('seoTitle', article.seoTitle);
       }
       if (article.seoDescription) {
-        form.setValue('seoDescription', article.seoDescription);
+        form.setValue('seoDescription', article.seoDescription.slice(0, 160));
       }
   
       toast({
@@ -229,7 +231,9 @@ export function ArticleForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onPreview)} className="space-y-6 mt-4">
+      <form onSubmit={form.handleSubmit(
+          form.getValues("status") === "draft" ? onPreview : onPublish
+        )} className="space-y-6 mt-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -276,6 +280,32 @@ export function ArticleForm() {
             )}
           />
         </div>
+
+        <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="guide">Guide</SelectItem>
+                    <SelectItem value="morph">Morph Docs</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Choose where this content will appear
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
         <FormField
           control={form.control}
@@ -368,6 +398,7 @@ export function ArticleForm() {
               <FormLabel>Excerpt</FormLabel>
               <FormControl>
                 <Textarea 
+                  maxLength={280}
                   placeholder="Brief summary of the article"
                   className="h-[100px]"
                   {...field}
@@ -440,6 +471,7 @@ export function ArticleForm() {
             </FormItem>
           )}
         />
+        
 
         <div className="space-y-4">
           <FormField
@@ -470,6 +502,7 @@ export function ArticleForm() {
                 <FormLabel>SEO Description</FormLabel>
                 <FormControl>
                   <Textarea 
+                    maxLength={160}
                     placeholder="Custom description for search engines (optional)"
                     className="h-[100px]"
                     {...field}

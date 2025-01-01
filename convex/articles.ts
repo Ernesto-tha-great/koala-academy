@@ -18,6 +18,7 @@ export const create = mutation({
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
+    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -36,6 +37,7 @@ export const create = mutation({
       likes: 0,
       readingTime: Math.ceil(args.content.split(/\s+/).length / 200),
       lastModified: Date.now(),
+      category: args.category, // Add required category field
       // Use provided SEO fields or fallback to title/excerpt
       seoTitle: args.seoTitle || args.title,
       seoDescription: args.seoDescription || args.excerpt
@@ -340,5 +342,42 @@ export const trending = query({
         totalViews: views.length,
         dailyViews,
       };
+    },
+  });
+
+  export const search = query({
+    args: {
+      query: v.string(),
+      type: v.optional(v.union(v.literal("article"), v.literal("guide"), v.literal("morph"))),
+      limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+      const searchQuery = args.query.toLowerCase();
+      const limit = args.limit ?? 10;
+
+      let query = ctx.db
+        .query("articles")
+        .filter((q) => 
+          q.eq(q.field("status"), "published")
+        );
+
+      // Add type filter if specified
+      if (args.type) {
+        query = query.filter((q) => 
+          q.eq(q.field("category"), args.type)
+        );
+      }
+
+      const results = await query.collect();
+
+      // Filter by search terms
+      const filtered = results.filter(article => 
+        article.title.toLowerCase().includes(searchQuery) ||
+        article.excerpt.toLowerCase().includes(searchQuery) ||
+        article.content.toLowerCase().includes(searchQuery) ||
+        article.tags.some(tag => tag.toLowerCase().includes(searchQuery))
+      );
+
+      return filtered.slice(0, limit);
     },
   });

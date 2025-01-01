@@ -11,6 +11,7 @@ export default defineSchema({
     excerpt: v.string(), // For preview/SEO
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
     status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
+    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
     externalUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     authorId: v.string(),

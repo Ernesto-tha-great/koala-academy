@@ -1,3 +1,219 @@
+// import { Readability } from '@mozilla/readability';
+// import { JSDOM } from 'jsdom';
+// import TurndownService from 'turndown';
+
+// const { window } = new JSDOM();
+// const { Element } = window;
+
+// export interface ScrapedArticle {
+//   title: string;
+//   content: string;
+//   excerpt: string;
+//   headerImage?: string;
+//   tags: string[];
+//   canonicalUrl: string;
+//   author?: string;
+//   seoTitle?: string;
+//   seoDescription?: string;
+//   platform: string;
+// }
+
+// export class ArticleParser {
+//   private turndownService: TurndownService;
+
+//   constructor() {
+//     this.turndownService = new TurndownService({
+//       headingStyle: 'atx',
+//       codeBlockStyle: 'fenced',
+//       hr: '---',
+//       bulletListMarker: '-',
+//       strongDelimiter: '**',
+//       emDelimiter: '_'
+//     });
+
+//     // Add additional rules for headers
+//     this.turndownService.addRule('headers', {
+//       filter: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+//       replacement: (content, node) => {
+//         const level = Number(node.nodeName.charAt(1));
+//         const hashes = '#'.repeat(level);
+//         return `\n\n${hashes} ${content}\n\n`;
+//       }
+//     });
+
+//     // Add rule for paragraphs to ensure proper spacing
+//     this.turndownService.addRule('paragraph', {
+//       filter: 'p',
+//       replacement: content => `\n\n${content}\n\n`
+//     });
+
+//     this.setupTurndownRules();
+//   }
+
+//   private setupTurndownRules() {
+//     // Code block rule for multi-line code snippets
+//     this.turndownService.addRule('codeBlock', {
+//       filter: (node: Element): boolean => {
+//         // Only match code blocks, not inline code
+//         return (
+//           // Pre + code pattern (most common for code blocks)
+//           (node.nodeName === 'PRE' && node.querySelector('code') !== null) ||
+//           // Common blog platform code blocks
+//           node.classList?.contains('kg-code-card') ||
+//           node.classList?.contains('code-block') ||
+//           node.classList?.contains('highlight')
+//         );
+//       },
+//       replacement: (content: string, node: Node) => {
+//         const codeElement = (node as Element).querySelector('code') || node;
+//         let codeContent = codeElement.textContent || content;
+        
+//         // Detect language
+//         let language = '';
+//         const classNames = (codeElement as Element).className || '';
+//         const langMatch = classNames.match(/(?:language|lang)-(\w+)/);
+//         if (langMatch) {
+//           language = langMatch[1];
+//         }
+
+//         return `\n\n\`\`\`${language}\n${codeContent.trim()}\n\`\`\`\n\n`;
+//       }
+//     });
+
+//     // Inline code rule for single-line code references
+//     this.turndownService.addRule('inlineCode', {
+//       filter: (node: HTMLElement) => {
+//         return (
+//           node.nodeName === 'CODE' && 
+//           (!node.parentElement || node.parentElement.nodeName !== 'PRE')
+//         );
+//       },
+//       replacement: (content: string) => `\`${content.trim()}\``
+//     });
+
+//     // Image handling
+//     this.turndownService.addRule('image', {
+//       filter: 'img',
+//       replacement: (content, node) => {
+//         const img = node as HTMLImageElement;
+//         const src = img.getAttribute('src') || '';
+//         const alt = img.getAttribute('alt') || '';
+//         const title = img.getAttribute('title');
+
+//         if (!src || this.isTrackingPixel(src, img)) return '';
+
+//         const titlePart = title ? ` "${title}"` : '';
+//         return `\n\n![${alt}](${src}${titlePart})\n\n`;
+//       }
+//     });
+//   }
+
+//   private detectLanguage(element: Element, content: string): string {
+//     // Check class names
+//     if (element.classList) {
+//       const classes = Array.from(element.classList);
+//       for (const className of classes) {
+//         if (className.startsWith('language-')) {
+//           return className.replace('language-', '');
+//         }
+//         if (className.startsWith('lang-')) {
+//           return className.replace('lang-', '');
+//         }
+//       }
+//     }
+
+//     // Content-based detection
+//     if (content.includes('pragma solidity')) return 'solidity';
+//     if (content.includes('contract ') && content.includes('function')) return 'solidity';
+//     if (content.includes('import') && content.includes('from')) {
+//       return content.includes('type') || content.includes('interface') ? 'typescript' : 'javascript';
+//     }
+//     if (content.includes('function') && content.includes('=>')) return 'typescript';
+//     if (content.includes('const') && content.includes('=')) return 'typescript';
+
+//     // Default to plaintext if no language detected
+//     return 'plaintext';
+//   }
+
+//   private cleanCodeContent(content: string): string {
+//     return content
+//       .replace(/^\n+|\n+$/g, '')     // Remove leading/trailing newlines
+//       .replace(/\t/g, '  ')          // Convert tabs to spaces
+//       .replace(/\n\s+\n/g, '\n\n')   // Remove lines with only whitespace
+//       .replace(/\n{3,}/g, '\n\n')    // Limit consecutive newlines
+//       .replace(/^(\s*\n){2,}/gm, '\n')  // Remove multiple blank lines at start
+//       .trim();
+//   }
+
+//   private isTrackingPixel(src: string, img: HTMLImageElement): boolean {
+//     const width = parseInt(img.getAttribute('width') || '0', 10);
+//     const height = parseInt(img.getAttribute('height') || '0', 10);
+    
+//     return (
+//       src.includes('tracking') ||
+//       src.includes('pixel') ||
+//       src.includes('analytics') ||
+//       src.includes('beacon') ||
+//       (width <= 1 && height <= 1)
+//     );
+//   }
+
+//   private async fetchPage(url: string): Promise<string> {
+//     const response = await fetch(url, {
+//       headers: {
+//         'User-Agent': 'Mozilla/5.0 (compatible; BlogParser/1.0;)',
+//         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+//       }
+//     });
+
+//     if (!response.ok) {
+//       throw new Error(`Failed to fetch article: ${response.statusText}`);
+//     }
+
+//     return response.text();
+//   }
+
+//   public async parse(url: string): Promise<ScrapedArticle> {
+//     try {
+//       const html = await this.fetchPage(url);
+//       const dom = new JSDOM(html);
+//       const document = dom.window.document;
+
+//       // Process with Readability
+//       const reader = new Readability(document);
+//       const article = reader.parse();
+
+//       if (!article) {
+//         throw new Error('Failed to parse article');
+//       }
+
+//       // Convert HTML to Markdown
+//       const markdown = this.turndownService.turndown(article.content);
+
+//       // Extract metadata
+//       return {
+//         title: article.title,
+//         content: markdown,
+//         excerpt: article.excerpt || '',
+//         headerImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content') || undefined,
+//         tags: Array.from(document.querySelectorAll('meta[property="article:tag"]'))
+//           .map(tag => tag.getAttribute('content'))
+//           .filter((tag): tag is string => Boolean(tag)),
+//         canonicalUrl: url,
+//         author: article.byline,
+//         seoTitle: document.querySelector('meta[property="og:title"]')?.getAttribute('content') || article.title,
+//         seoDescription: document.querySelector('meta[property="og:description"]')?.getAttribute('content') || article.excerpt,
+//         platform: new URL(url).hostname
+//       };
+//     } catch (error) {
+//       console.error('Error parsing article:', error);
+//       throw error;
+//     }
+//   }
+// }
+
+// export const articleParser = new ArticleParser();
+
 import { Readability } from '@mozilla/readability';
 import { JSDOM } from 'jsdom';
 import TurndownService from 'turndown';

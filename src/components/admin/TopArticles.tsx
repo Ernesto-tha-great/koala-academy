@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { formatISO } from "date-fns";
+import { formatDate } from "@/lib/utils";
 
 export function TopArticles() {
   const topArticles = useQuery(api.articles.getTopArticles, {
@@ -34,7 +35,7 @@ export function TopArticles() {
                 </div>
               </div>
               <div className="text-sm text-muted-foreground">
-                {formatDistanceToNow(article.publishedAt!)} ago
+                {article.publishedAt ? formatDate(article.publishedAt) : ''} ago
               </div>
             </div>
           ))}
