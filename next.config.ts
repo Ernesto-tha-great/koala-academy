@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
       'miro.medium.com',
       'media2.dev.to',
       'dev-to-uploads.s3.amazonaws.com',
-      'assets.dev.to'
+      'assets.dev.to',
+      "lh7-us.googleusercontent.com"
     ],
     
   },

@@ -83,7 +83,7 @@ export function Article({ article }: ArticleProps) {
               
               // Clean up the URL if it contains width/height parameters
               const cleanSrc = src.replace(/\/width=\d+,height=\d+,/, '/');
-              console.log(cleanSrc);
+            
               
               return (
                 <div className="my-4">

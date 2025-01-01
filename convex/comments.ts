@@ -1,7 +1,6 @@
 // convex/comments.ts
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireUser } from "./auth";
 import { ConvexError } from "convex/values";
 
 export const list = query({
@@ -38,10 +37,30 @@ export const list = query({
       users.map(user => [user!.userId, user])
     );
 
-    return comments.map(comment => ({
-      ...comment,
-      author: usersMap[comment.authorId],
-    }));
+    // Get replies for each comment
+    const commentsWithReplies = await Promise.all(
+      comments.map(async (comment) => {
+        const replies = await ctx.db
+          .query("comments")
+          .withIndex("by_parent")
+          .filter((q) => q.eq(q.field("parentCommentId"), comment._id))
+          .order("asc")
+          .collect();
+
+        return {
+          ...comment,
+          author: usersMap[comment.authorId],
+          replies: await Promise.all(
+            replies.map(async (reply) => ({
+              ...reply,
+              author: usersMap[reply.authorId],
+            }))
+          ),
+        };
+      })
+    );
+
+    return commentsWithReplies;
   },
 });
 
@@ -52,7 +71,11 @@ export const create = mutation({
     parentCommentId: v.optional(v.id("comments")),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    
+    if (!identity) {
+      throw new ConvexError("You must be logged in to comment");
+    }
 
     // Validate article exists
     const article = await ctx.db.get(args.articleId);
@@ -68,26 +91,41 @@ export const create = mutation({
       }
     }
 
+    // Get user info
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId")
+      .filter(q => q.eq(q.field("userId"), identity.subject))
+      .first();
+
+    if (!user) {
+      throw new ConvexError("User not found");
+    }
+
     const comment = await ctx.db.insert("comments", {
       articleId: args.articleId,
       content: args.content,
-      authorId: user.user.userId,
-      authorName: user.user.name,
+      authorId: identity.subject,
+      authorName: user.name,
       parentCommentId: args.parentCommentId,
       status: "visible",
       createdAt: Date.now(),
     });
 
-    // await auditLog(
-    //   ctx,
-    //   "comment_created",
-    //   user.user.userId,
-    //   "comments",
-    //   comment,
-    //   JSON.stringify({ articleId: args.articleId })
-    // );
-
-    return comment;
+    return {
+      _id: comment,
+      articleId: args.articleId,
+      content: args.content,
+      authorId: identity.subject,
+      authorName: user.name,
+      parentCommentId: args.parentCommentId,
+      status: "visible",
+      createdAt: Date.now(),
+      author: {
+        userId: user.userId,
+        name: user.name,
+      }
+    };
   },
 });
 
@@ -97,15 +135,28 @@ export const update = mutation({
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
-    const comment = await ctx.db.get(args.id);
+    const identity = await ctx.auth.getUserIdentity();
+    
+    if (!identity) {
+      throw new ConvexError("You must be logged in to update a comment");
+    }
 
+    const comment = await ctx.db.get(args.id);
     if (!comment) {
       throw new ConvexError("Comment not found");
     }
 
-    if (comment.authorId !== user.user.userId && user.user.role !== "admin") {
-      throw new ConvexError("Not authorized to update this comment");
+    // Check if user is the author
+    if (comment.authorId !== identity.subject) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_userId")
+        .filter(q => q.eq(q.field("userId"), identity.subject))
+        .first();
+
+      if (!user || user.role !== "admin") {
+        throw new ConvexError("Not authorized to update this comment");
+      }
     }
 
     const updatedComment = await ctx.db.patch(args.id, {
@@ -113,16 +164,46 @@ export const update = mutation({
       updatedAt: Date.now(),
     });
 
-    // await auditLog(
-    //   ctx,
-    //   "comment_updated",
-    //   user.user.userId,
-    //   "comments",
-    //   args.id,
-    //   JSON.stringify({ content: args.content })
-    // );
-
     return updatedComment;
+  },
+});
+
+export const remove = mutation({
+  args: {
+    id: v.id("comments"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    
+    if (!identity) {
+      throw new ConvexError("You must be logged in to delete a comment");
+    }
+
+    const comment = await ctx.db.get(args.id);
+    if (!comment) {
+      throw new ConvexError("Comment not found");
+    }
+
+    // Check if user is the author
+    if (comment.authorId !== identity.subject) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_userId")
+        .filter(q => q.eq(q.field("userId"), identity.subject))
+        .first();
+
+      if (!user || user.role !== "admin") {
+        throw new ConvexError("Not authorized to delete this comment");
+      }
+    }
+
+    // Soft delete by updating status
+    await ctx.db.patch(args.id, {
+      status: "deleted",
+      deletedAt: Date.now(),
+    });
+
+    return { success: true };
   },
 });
 
@@ -132,51 +213,64 @@ export const moderate = mutation({
     status: v.union(v.literal("visible"), v.literal("hidden"), v.literal("deleted")),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
+    const identity = await ctx.auth.getUserIdentity();
     
-    if (user.user.role !== "admin") {
+    if (!identity) {
+      throw new ConvexError("You must be logged in to moderate comments");
+    }
+
+    // Verify admin status
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_userId")
+      .filter(q => q.eq(q.field("userId"), identity.subject))
+      .first();
+
+    if (!user || user.role !== "admin") {
       throw new ConvexError("Not authorized to moderate comments");
     }
 
     const comment = await ctx.db.patch(args.id, {
       status: args.status,
+      moderatedAt: Date.now(),
+      moderatedBy: identity.subject,
     });
-
-    // await auditLog(
-    //   ctx,
-    //   "comment_moderated",
-    //   user.user.userId,
-    //   "comments",
-    //   args.id,
-    //   JSON.stringify({ status: args.status })
-    // );
 
     return comment;
   },
 });
 
-export const getModeration = query({
+// Get replies for a specific comment
+export const getReplies = query({
   args: {
-    limit: v.optional(v.number()),
-    status: v.optional(v.union(v.literal("visible"), v.literal("hidden"), v.literal("deleted"))),
+    commentId: v.id("comments"),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
-    
-    if (user.user.role !== "admin") {
-      throw new ConvexError("Not authorized to view moderation queue");
-    }
+    const replies = await ctx.db
+      .query("comments")
+      .withIndex("by_parent")
+      .filter((q) => q.eq(q.field("parentCommentId"), args.commentId))
+      .order("asc")
+      .collect();
 
-    let query = ctx.db.query("comments");
-    
-    if (args.status) {
-      query = query.filter(q => q.eq(q.field("status"), args.status));
-    }
+    // Get users info for replies
+    const userIds = [...new Set(replies.map(reply => reply.authorId))];
+    const users = await Promise.all(
+      userIds.map(id => 
+        ctx.db
+          .query("users")
+          .filter(q => q.eq(q.field("userId"), id))
+          .first()
+      )
+    );
 
-    const comments = await query
-      .order("desc")
-      .take(args.limit ?? 50);
+    const usersMap = Object.fromEntries(
+      users.map(user => [user!.userId, user])
+    );
 
-    return comments;
+    return replies.map(reply => ({
+      ...reply,
+      author: usersMap[reply.authorId],
+    }));
   },
 });

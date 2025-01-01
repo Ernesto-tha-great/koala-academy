@@ -11,6 +11,7 @@ export default defineSchema({
     excerpt: v.string(), // For preview/SEO
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
     status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
+    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
     externalUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     authorId: v.string(),
@@ -37,13 +38,18 @@ export default defineSchema({
     content: v.string(),
     authorId: v.string(),
     authorName: v.string(),
+    parentCommentId: v.optional(v.id("comments")),
+    status: v.union(v.literal("visible"), v.literal("hidden"), v.literal("deleted")),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-    status: v.union(v.literal("visible"), v.literal("hidden"), v.literal("deleted")),
-    parentCommentId: v.optional(v.id("comments")), // For nested comments
+    deletedAt: v.optional(v.number()),
+    moderatedAt: v.optional(v.number()),
+    moderatedBy: v.optional(v.string()),
   })
-    .index("by_article", ["articleId", "status", "createdAt"])
-    .index("by_author", ["authorId", "createdAt"]),
+    .index("by_article", ["articleId", "createdAt"])
+    .index("by_parent", ["parentCommentId", "createdAt"])
+    .index("by_author", ["authorId", "createdAt"])
+    .index("by_status", ["status", "createdAt"]),
 
   likes: defineTable({
     articleId: v.id("articles"),

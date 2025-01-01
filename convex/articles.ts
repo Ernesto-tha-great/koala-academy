@@ -18,6 +18,7 @@ export const create = mutation({
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
+    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -36,6 +37,7 @@ export const create = mutation({
       likes: 0,
       readingTime: Math.ceil(args.content.split(/\s+/).length / 200),
       lastModified: Date.now(),
+      category: args.category, // Add required category field
       // Use provided SEO fields or fallback to title/excerpt
       seoTitle: args.seoTitle || args.title,
       seoDescription: args.seoDescription || args.excerpt
@@ -186,14 +188,14 @@ export const getById = query({
         .filter(q => q.eq(q.field("_id"), args.id))
         .first();
 
-        if (!article) return new ConvexError("Article not found");;
+        if (!article) return null;
 
-        // const author = await ctx.db
-        // .query("users")
-        // .filter(q => q.eq(q.field("userId"), article.authorId))
-        // .first();
+        const author = await ctx.db
+        .query("users")
+        .filter(q => q.eq(q.field("userId"), article.authorId))
+        .first();
 
-        return { ...article };
+        return { ...article, author };
     }
 })
 
@@ -221,19 +223,8 @@ export const getRelated = query({
   },
 });
 
-export const incrementViews = mutation({
-  args: { id: v.id("articles") },
-  handler: async (ctx, args) => {
-    const article = await ctx.db.get(args.id);
-    if (!article) {
-      throw new ConvexError("Article not found");
-    }
 
-    await ctx.db.patch(args.id, {
-      views: (article.views ?? 0) + 1,
-    });
-  },
-});
+
 
 export const trending = query({
     handler: async (ctx) => {
@@ -258,7 +249,26 @@ export const trending = query({
       const timestamp = Date.now();
       const date = formatISO(timestamp, { representation: 'date' });
   
-      // Record the view
+      // Single query to check for recent views from this user
+      const recentView = await ctx.db
+        .query("articleViews")
+        .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+        .filter((q) => {
+          const userCheck = identity?.subject 
+            ? q.eq(q.field("userId"), identity.subject)
+            : q.eq(q.field("userId"), undefined);
+          return q.and(
+            userCheck,
+            q.gt(q.field("viewedAt"), timestamp - 300000)
+          );
+        })
+        .first();
+  
+      if (recentView) {
+        return; // Skip if recent view exists
+      }
+  
+      // Record new view and increment article counter in one transaction
       await ctx.db.insert("articleViews", {
         articleId: args.articleId,
         userId: identity?.subject,
@@ -266,16 +276,13 @@ export const trending = query({
         date,
       });
   
-      // Update total views on article
+      // Use atomic increment for article views
       const article = await ctx.db.get(args.articleId);
-      if (article) {
-        await ctx.db.patch(args.articleId, {
-          views: (article.views || 0) + 1,
-        });
-      }
+      await ctx.db.patch(args.articleId, {
+        views: (article?.views ?? 0) + 1
+      });
     },
   });
-  
   // Get top articles by views for a specific date
   export const getTopArticles = query({
     args: {
@@ -335,5 +342,42 @@ export const trending = query({
         totalViews: views.length,
         dailyViews,
       };
+    },
+  });
+
+  export const search = query({
+    args: {
+      query: v.string(),
+      type: v.optional(v.union(v.literal("article"), v.literal("guide"), v.literal("morph"))),
+      limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+      const searchQuery = args.query.toLowerCase();
+      const limit = args.limit ?? 10;
+
+      let query = ctx.db
+        .query("articles")
+        .filter((q) => 
+          q.eq(q.field("status"), "published")
+        );
+
+      // Add type filter if specified
+      if (args.type) {
+        query = query.filter((q) => 
+          q.eq(q.field("category"), args.type)
+        );
+      }
+
+      const results = await query.collect();
+
+      // Filter by search terms
+      const filtered = results.filter(article => 
+        article.title.toLowerCase().includes(searchQuery) ||
+        article.excerpt.toLowerCase().includes(searchQuery) ||
+        article.content.toLowerCase().includes(searchQuery) ||
+        article.tags.some(tag => tag.toLowerCase().includes(searchQuery))
+      );
+
+      return filtered.slice(0, limit);
     },
   });

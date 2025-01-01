@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, MessageSquare, Eye } from "lucide-react";
 import { RecentArticles } from "./RecentArticles";
 import { RecentComments } from "./RecentComments";
+import { TopArticles } from "./TopArticles";
 
 interface DashboardStat {
   title: string;
@@ -13,6 +14,16 @@ interface DashboardStat {
   icon: any;
   description: string;
 }
+
+// to fix
+// 1. loading state
+// 2. likes
+// 3. related articles
+// 4. search
+// 5. article of the day
+// 6. user management
+// 7. add a new card for total authors
+
 
 export function Dashboard() {
   const articles = useQuery(api.articles.list, { limit: 10 });
@@ -65,6 +76,8 @@ export function Dashboard() {
     <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
       <RecentArticles />
       {/* <RecentComments /> */}
+
+      <TopArticles />
     </div>
   </div>
   );
