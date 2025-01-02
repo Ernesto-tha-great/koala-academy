@@ -19,6 +19,7 @@ export const create = mutation({
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
+    level: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
@@ -37,8 +38,8 @@ export const create = mutation({
       likes: 0,
       readingTime: Math.ceil(args.content.split(/\s+/).length / 200),
       lastModified: Date.now(),
-      category: args.category, // Add required category field
-      // Use provided SEO fields or fallback to title/excerpt
+      category: args.category,
+      level: args.level,
       seoTitle: args.seoTitle || args.title,
       seoDescription: args.seoDescription || args.excerpt
     });
@@ -208,7 +209,7 @@ export const getRelated = query({
     const article = await ctx.db.get(args.articleId);
     if (!article) return [];
 
-    const related = await ctx.db
+    const filteredArticles = await ctx.db
       .query("articles")
       .filter(q => 
         q.and(
@@ -216,10 +217,18 @@ export const getRelated = query({
           q.eq(q.field("status"), "published")
         )
       )
-      .order("desc")
-      .take(args.limit ?? 3);
+      .collect();
 
-    return related;
+    // Find articles with 2+ tags in common
+    const related = filteredArticles.filter(relatedArticle => {
+      const commonTags = relatedArticle.tags.filter(tag => 
+        article.tags.includes(tag)
+      );
+      return commonTags.length >= 2;
+    });
+
+    // Return limited results if limit was provided
+    return args.limit ? related.slice(0, args.limit) : related;
   },
 });
 

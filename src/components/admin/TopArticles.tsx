@@ -3,16 +3,12 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
-import { formatISO } from "date-fns";
 import { formatDate } from "@/lib/utils";
 
 export function TopArticles() {
-  const topArticles = useQuery(api.articles.getTopArticles, {
-    date: formatISO(new Date(), { representation: 'date' }),
-    limit: 5
-  });
+
+const topArticles = useQuery(api.articles.trending);
 
   return (
     <Card>
@@ -22,7 +18,7 @@ export function TopArticles() {
       <CardContent>
         <div className="space-y-4">
           {topArticles?.map((article) => (
-            <div key={article._id} className="flex items-center justify-between">
+            <div key={article._id} className="flex items-start justify-between">
               <div>
                 <Link 
                   href={`/blog/${article.slug}`}
@@ -31,7 +27,7 @@ export function TopArticles() {
                   {article.title}
                 </Link>
                 <div className="text-sm text-muted-foreground">
-                  {article.dailyViews} views today
+                  {article.views} views today
                 </div>
               </div>
               <div className="text-sm text-muted-foreground">
