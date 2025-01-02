@@ -9,6 +9,7 @@ import { Article } from "../../../../components/Article";
 import { CommentSection } from "../../../../components/CommentSection";
 import { RelatedArticles } from "../../../../components/RelatedArticles";
 import { api } from "../../../../../convex/_generated/api";
+import ArticleLoadingSkeleton from "@/components/Skeleton";
 
 
 
@@ -41,7 +42,7 @@ export default function ArticlePage() {
   }, [params.slug]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <ArticleLoadingSkeleton />;
   }
 
   if (!article) {
