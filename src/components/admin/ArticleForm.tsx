@@ -42,6 +42,7 @@ const formSchema = z.object({
     .max(300, "Excerpt must be less than 300 characters"),
   content: z.string().optional(),
   category: z.enum(["article", "guide", "morph"]),
+  level: z.enum(["beginner", "intermediate", "advanced"]),
   externalUrl: z.string().url().optional(),
   videoUrl: z.string().url().optional(),
   tags: z.string().transform((str) => 
@@ -100,6 +101,7 @@ export function ArticleForm() {
       type: "markdown",
       status: "draft",
       category: "article",
+      level: "beginner",
       title: "",
       headerImage: "",
       excerpt: "",
@@ -168,30 +170,26 @@ export function ArticleForm() {
   
 
   const onPreview = async (data: FormData) => {
-    
-    setPreviewId(undefined);
-    setPreviewOpen(false);
-
     try {
-     const newArticle = await createArticle({
-        ...data,
-        status: "draft",
-        content: data.content || "",
-        tags: data.tags,
-        externalUrl: data.type === "external" ? data.externalUrl : undefined,
-        videoUrl: data.type === "video" ? data.videoUrl : undefined,
-      });
-
-      toast({
-        title: "Success",
-        description: "Draft saved successfully",
-      });
-
+      // If we already have a preview ID, don't create a new draft
+      if (!previewId) {
+        const newArticle = await createArticle({
+          ...data,
+          status: "draft",
+          content: data.content || "",
+          tags: data.tags,
+          externalUrl: data.type === "external" ? data.externalUrl : undefined,
+          videoUrl: data.type === "video" ? data.videoUrl : undefined,
+        });
         
         setPreviewId(newArticle);
-      setPreviewOpen(true);
+        toast({
+          title: "Success",
+          description: "Draft saved successfully",
+        });
+      }
 
-      
+      setPreviewOpen(true);
     } catch (error) {
       console.error("Failed save draft:", error);
       toast({
@@ -301,6 +299,32 @@ export function ArticleForm() {
                 </Select>
                 <FormDescription>
                   Choose where this content will appear
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+        <FormField
+            control={form.control}
+            name="level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Level</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Choose the level of this content
                 </FormDescription>
                 <FormMessage />
               </FormItem>

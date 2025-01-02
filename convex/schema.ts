@@ -12,6 +12,7 @@ export default defineSchema({
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
     status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
     category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
+    level: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
     externalUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     authorId: v.string(),

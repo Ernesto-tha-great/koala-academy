@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { BlogSidebar } from "@/components/blog/BlogSidebar";
@@ -23,42 +23,62 @@ export default function BlogPage() {
   const articles = useQuery(api.articles.list, {
     limit: 100,
   });
+  
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
 
-  const learningPaths = [
+  // Define content categories
+  const contentCategories = [
     {
-      title: "Getting Started with Morph",
-      description: "Learn the fundamentals of building on Morph L2",
-      icon: "🚀",
-      path: "/blog/getting-started",
-      level: "beginner"
+      title: "Technical Articles",
+      description: "Deep technical content about Morph's infrastructure",
+      icon: "📚",
+      filter: "technical",
     },
     {
-      title: "Smart Contract Development",
-      description: "Deep dive into writing efficient smart contracts on Morph",
-      icon: "📝",
-      path: "/blog/smart-contracts",
-      level: "intermediate"
+      title: "Tutorials",
+      description: "Step-by-step guides for building on Morph",
+      icon: "💡",
+      filter: "tutorial",
     },
     {
-      title: "Advanced Protocols",
-      description: "Build complex DeFi protocols and advanced applications",
-      icon: "⚡",
-      path: "/blog/advanced-protocols",
-      level: "advanced"
+      title: "Developer Updates",
+      description: "Latest updates and changes to Morph's developer tools",
+      icon: "🔄",
+      filter: "updates",
     },
     {
-      title: "Integration Guides",
-      description: "Connect your dApp with Morph's infrastructure",
-      icon: "🔗",
-      path: "/blog/integration",
-      level: "intermediate"
-    }
+      title: "Case Studies",
+      description: "Real-world examples and implementations",
+      icon: "📊",
+      filter: "case-study",
+    },
   ];
+
+  // Get available levels from articles
+  const availableLevels = useMemo(() => {
+    if (!articles) return new Set<string>();
+    
+    const levels = new Set<string>();
+    articles.forEach(article => {
+      if (article.level) levels.add(article.level);
+    });
+    return levels;
+  }, [articles]);
+
+  // Filter articles based on selected category and level
+  const filteredArticles = useMemo(() => {
+    if (!articles) return [];
+    
+    return articles.filter(article => {
+      const categoryMatch = selectedCategory === "all" || article.category === selectedCategory;
+      const levelMatch = selectedLevel === "all" || article.level === selectedLevel;
+      return categoryMatch && levelMatch;
+    });
+  }, [articles, selectedCategory, selectedLevel]);
 
   return (
     <div className="container mx-auto flex">
-      
       <main className="flex-1 px-8 py-6">
         {/* Hero Section */}
         <section className="mb-12">
@@ -69,23 +89,27 @@ export default function BlogPage() {
             Technical guides, tutorials, and resources for building the future of Layer 2
           </p>
 
-          {/* Learning Paths */}
+          {/* Content Categories */}
           <div className="grid md:grid-cols-2 gap-4 mb-12">
-            {learningPaths.map((path) => (
-              <Link key={path.title} href={path.path}>
-                <Card className="h-full hover:bg-accent/50 transition-colors cursor-pointer">
-                  <CardHeader>
-                    <div className="text-2xl mb-2">{path.icon}</div>
-                    <CardTitle>{path.title}</CardTitle>
-                    <CardDescription>{path.description}</CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                    <Button variant="ghost" className="ml-auto">
-                      Explore <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </Link>
+            {contentCategories.map((category) => (
+              <Card 
+                key={category.filter}
+                className={cn(
+                  "h-full transition-colors cursor-pointer",
+                  selectedCategory === category.filter 
+                    ? "bg-accent" 
+                    : "hover:bg-accent/50"
+                )}
+                onClick={() => setSelectedCategory(
+                  selectedCategory === category.filter ? "all" : category.filter
+                )}
+              >
+                <CardHeader>
+                  <div className="text-2xl mb-2">{category.icon}</div>
+                  <CardTitle>{category.title}</CardTitle>
+                  <CardDescription>{category.description}</CardDescription>
+                </CardHeader>
+              </Card>
             ))}
           </div>
         </section>
@@ -93,24 +117,34 @@ export default function BlogPage() {
         {/* Articles Section */}
         <section>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">Latest Articles</h2>
-            <Tabs
-              defaultValue="all"
-              value={selectedLevel}
-              onValueChange={setSelectedLevel}
-              className="w-auto"
-            >
-              <TabsList>
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="beginner">Beginner</TabsTrigger>
-                <TabsTrigger value="intermediate">Intermediate</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <h2 className="text-2xl font-semibold">
+              {selectedCategory === "all" 
+                ? "All Articles" 
+                : `${contentCategories.find(c => c.filter === selectedCategory)?.title}`}
+            </h2>
+            
+            {/* Only show tabs if there are levels available */}
+            {availableLevels.size > 0 && (
+              <Tabs
+                defaultValue="all"
+                value={selectedLevel}
+                onValueChange={setSelectedLevel}
+                className="w-auto"
+              >
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  {Array.from(availableLevels).map(level => (
+                    <TabsTrigger key={level} value={level}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {articles?.map((article) => (
+            {filteredArticles.map((article) => (
               <Link key={article._id} href={`/blog/${article.slug}`}>
                 <Card className="h-full hover:bg-accent/50 transition-colors">
                   <CardHeader>
