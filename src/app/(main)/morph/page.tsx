@@ -18,7 +18,7 @@ export default function MorphPage() {
       topic.title.toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
-
+ 
   return (
     <div className="container max-w-7xl mx-auto py-12 px-4">
       {/* Hero Section */}

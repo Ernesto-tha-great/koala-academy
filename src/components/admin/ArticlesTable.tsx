@@ -117,7 +117,7 @@ export function ArticlesTable() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href={`/admin/articles`}>
+                      <Link href={`/admin/articles/${article._id}/edit`}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </Link>

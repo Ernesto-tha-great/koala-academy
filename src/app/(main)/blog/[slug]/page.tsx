@@ -11,14 +11,11 @@ import { RelatedArticles } from "../../../../components/RelatedArticles";
 import { api } from "../../../../../convex/_generated/api";
 import ArticleLoadingSkeleton from "@/components/Skeleton";
 
-
-
 export default function ArticlePage() {
   const params = useParams();
   const [article, setArticle] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const recordView = useMutation(api.articles.recordView);
-
 
   useEffect(() => {
     async function loadArticle() {
@@ -50,24 +47,28 @@ export default function ArticlePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <article className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Article article={{
           ...article,
           author: article.author ? { name: article.author.name } : { name: '' }
         }} />
         
-        <Suspense fallback={<div>Loading comments...</div>}>
-          <CommentSection articleId={article._id} />
-        </Suspense>
+        <section>
+          <Suspense fallback={<span>Loading comments...</span>}>
+            <CommentSection articleId={article._id} />
+          </Suspense>
+        </section>
         
-        <Suspense fallback={<div>Loading related articles...</div>}>
-          <RelatedArticles 
-            currentArticleId={article._id}
-            tags={article.tags}
-          />
-        </Suspense>
-      </main>
-    </div>
+        <section>
+          <Suspense fallback={<span>Loading related articles...</span>}>
+            <RelatedArticles 
+              currentArticleId={article._id}
+              tags={article.tags}
+            />
+          </Suspense>
+        </section>
+      </div>
+    </article>
   );
 }
