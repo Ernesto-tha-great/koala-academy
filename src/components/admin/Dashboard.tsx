@@ -7,6 +7,8 @@ import { FileText, MessageSquare, Eye } from "lucide-react";
 import { RecentArticles } from "./RecentArticles";
 import { RecentComments } from "./RecentComments";
 import { TopArticles } from "./TopArticles";
+import ArticleLoadingSkeleton from "../Skeleton";
+import useBatchedQueries from "@/lib/batchQueries";
 
 interface DashboardStat {
   title: string;
@@ -16,18 +18,27 @@ interface DashboardStat {
 }
 
 // to fix
-// 1. loading state
-// 2. likes
-// 3. related articles
-// 4. search
-// 5. article of the day
+// mobile responsive
+// while importing, some links dont work
+// dashboard should be user related. morph team should have one and authors should have one
 // 6. user management
+// fix signup where everyone is admin
+// dashboard for approving content maybe
 // 7. add a new card for total authors
+
+//if a change is mad eto the content then the draft should be modified
+
+// add oracles, subgraphs, etc to the article oage and also a searchba
 
 
 export function Dashboard() {
-  const articles = useQuery(api.articles.list, { limit: 10 });
-  const stats = useQuery(api.admin.getStats);
+  const { isLoading, data } = useBatchedQueries();
+
+  if (isLoading) {
+    return <ArticleLoadingSkeleton />;
+  }
+
+  const { articles, stats } = data;
 
   const dashboardStats: DashboardStat[] = [
     {

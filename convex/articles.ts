@@ -14,7 +14,6 @@ export const create = mutation({
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
     status: v.union(v.literal("draft"), v.literal("published")),
     externalUrl: v.optional(v.string()),
-    videoUrl: v.optional(v.string()),
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
@@ -51,51 +50,45 @@ export const create = mutation({
 export const update = mutation({
   args: {
     id: v.id("articles"),
-    title: v.string(),
-    content: v.string(),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
     headerImage: v.optional(v.string()),
     excerpt: v.string(),
     type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
-    status: v.union(v.literal("draft"), v.literal("published")),
+    status: v.optional(v.string()),
+    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
+    level: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
     externalUrl: v.optional(v.string()),
-    videoUrl: v.optional(v.string()),
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await requireUser(ctx);
-    const { id, ...data } = args;
+    const { id, ...updates } = args;
 
-    const existingArticle = await ctx.db.get(id);
-    if (!existingArticle) {
-      throw new ConvexError("Article not found");
+    // Check if document exists
+    const existing = await ctx.db.get(id);
+    if (!existing) {
+      throw new Error(`Article with ID ${id} not found`);
     }
 
-    // Only allow admins or the original author to update
-    if (user.role !== "admin" && existingArticle.authorId !== user.userId) {
-      throw new ConvexError("Not authorized to update this article");
+    // Remove undefined values
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined)
+    );
+
+    // Log for debugging
+    console.log('Updating article:', id);
+    console.log('Updates:', cleanUpdates);
+
+    await ctx.db.patch(id, cleanUpdates);
+    
+    const updated = await ctx.db.get(id);
+    if (!updated) {
+      throw new Error('Failed to update article');
     }
 
-    // Generate new slug if title changed
-    const slug = data.title !== existingArticle.title
-      ? data.title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '')
-      : existingArticle.slug;
-
-    return await ctx.db.patch(id, {
-      ...data,
-      slug,
-      publishedAt: data.status === "published" && !existingArticle.publishedAt 
-        ? Date.now() 
-        : existingArticle.publishedAt,
-      readingTime: Math.ceil(data.content.split(/\s+/).length / 200),
-      lastModified: Date.now(),
-      seoTitle: data.seoTitle || data.title,
-      seoDescription: data.seoDescription || data.excerpt,
-    });
+    return updated;
   },
 });
 
@@ -167,7 +160,12 @@ export const getBySlug = query({
   handler: async (ctx, args) => {
     const article = await ctx.db
       .query("articles")
-      .filter(q => q.eq(q.field("slug"), args.slug))
+      .filter(q => 
+        q.and(
+          q.eq(q.field("slug"), args.slug),
+          q.eq(q.field("status"), "published")
+        )
+      )
       .first();
 
     if (!article) return null;
@@ -182,23 +180,17 @@ export const getBySlug = query({
 });
 
 export const getById = query({
-    args: { id: v.id("articles") },
-    handler: async (ctx, args) => {
-        const article = await ctx.db
-        .query("articles")
-        .filter(q => q.eq(q.field("_id"), args.id))
-        .first();
-
-        if (!article) return null;
-
-        const author = await ctx.db
-        .query("users")
-        .filter(q => q.eq(q.field("userId"), article.authorId))
-        .first();
-
-        return { ...article, author };
-    }
-})
+  args: { id: v.id("articles") },
+  handler: async (ctx, { id }) => {
+    // First try to find the article
+    const article = await ctx.db.get(id);
+    
+    if (!article) return null;
+    
+    
+    return { ...article};
+  },
+});
 
 export const getRelated = query({
   args: {
@@ -206,7 +198,15 @@ export const getRelated = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const article = await ctx.db.get(args.articleId);
+    const article = await ctx.db
+      .query("articles")
+      .filter(q => 
+        q.and(
+          q.eq(q.field("_id"), args.articleId),
+          q.eq(q.field("status"), "published")
+        )
+      )
+      .first();
     if (!article) return [];
 
     const filteredArticles = await ctx.db
@@ -239,8 +239,8 @@ export const trending = query({
     handler: async (ctx) => {
       const articles = await ctx.db
         .query("articles")
-        .filter((q) => q.eq(q.field("status"), "published"))
-        .collect(); // Collect all published articles
+        .filter(q => q.eq(q.field("status"), "published"))
+        .collect();
   
       // Sort articles by views in descending order
       articles.sort((a, b) => b.views - a.views);
@@ -366,9 +366,7 @@ export const trending = query({
 
       let query = ctx.db
         .query("articles")
-        .filter((q) => 
-          q.eq(q.field("status"), "published")
-        );
+        .filter(q => q.eq(q.field("status"), "published"));
 
       // Add type filter if specified
       if (args.type) {

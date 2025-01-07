@@ -3,62 +3,21 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { BlogSidebar } from "@/components/blog/BlogSidebar";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Eye, ChevronRight, BookOpen } from "lucide-react";
+import { Clock, TrendingUp, Star, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export default function BlogPage() {
   const articles = useQuery(api.articles.list, {
-    limit: 100,
+    limit: 10,
   });
   
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
-
-  // Define content categories
-  const contentCategories = [
-    {
-      title: "Technical Articles",
-      description: "Deep technical content about Morph's infrastructure",
-      icon: "📚",
-      filter: "technical",
-    },
-    {
-      title: "Tutorials",
-      description: "Step-by-step guides for building on Morph",
-      icon: "💡",
-      filter: "tutorial",
-    },
-    {
-      title: "Developer Updates",
-      description: "Latest updates and changes to Morph's developer tools",
-      icon: "🔄",
-      filter: "updates",
-    },
-    {
-      title: "Case Studies",
-      description: "Real-world examples and implementations",
-      icon: "📊",
-      filter: "case-study",
-    },
-  ];
 
   // Get available levels from articles
   const availableLevels = useMemo(() => {
     if (!articles) return new Set<string>();
-    
     const levels = new Set<string>();
     articles.forEach(article => {
       if (article.level) levels.add(article.level);
@@ -66,134 +25,177 @@ export default function BlogPage() {
     return levels;
   }, [articles]);
 
-  // Filter articles based on selected category and level
+  // Filter articles based on level
   const filteredArticles = useMemo(() => {
     if (!articles) return [];
-    
-    return articles.filter(article => {
-      const categoryMatch = selectedCategory === "all" || article.category === selectedCategory;
-      const levelMatch = selectedLevel === "all" || article.level === selectedLevel;
-      return categoryMatch && levelMatch;
-    });
-  }, [articles, selectedCategory, selectedLevel]);
+    return articles.filter(article => 
+      selectedLevel === "all" || article.level === selectedLevel
+    );
+  }, [articles, selectedLevel]);
+
+  // Separate featured and regular articles
+  const featuredArticle = filteredArticles[0];
+  const trendingArticles = filteredArticles.slice(1, 4);
+  const regularArticles = filteredArticles.slice(4);
 
   return (
-    <div className="container mx-auto flex">
-      <main className="flex-1 px-8 py-6">
-        {/* Hero Section */}
-        <section className="mb-12">
-          <h1 className="text-4xl font-bold mb-4">
-            Build on Morph
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8">
-            Technical guides, tutorials, and resources for building the future of Layer 2
-          </p>
+    <div className="container mx-auto px-4 py-12">
+      {/* Hero Section */}
+      <div className="mb-16">
+        <h1 className="text-4xl font-bold mb-4">
+          Technical Articles
+        </h1>
+        <p className="text-xl text-muted-foreground">
+          Deep dives into blockchain development, L2 scaling, and web3 architecture
+        </p>
+      </div>
 
-          {/* Content Categories */}
-          <div className="grid md:grid-cols-2 gap-4 mb-12">
-            {contentCategories.map((category) => (
-              <Card 
-                key={category.filter}
-                className={cn(
-                  "h-full transition-colors cursor-pointer",
-                  selectedCategory === category.filter 
-                    ? "bg-accent" 
-                    : "hover:bg-accent/50"
-                )}
-                onClick={() => setSelectedCategory(
-                  selectedCategory === category.filter ? "all" : category.filter
-                )}
-              >
-                <CardHeader>
-                  <div className="text-2xl mb-2">{category.icon}</div>
-                  <CardTitle>{category.title}</CardTitle>
-                  <CardDescription>{category.description}</CardDescription>
-                </CardHeader>
-              </Card>
+      {/* Level Filter */}
+      {availableLevels.size > 0 && (
+        <Tabs
+          defaultValue="all"
+          value={selectedLevel}
+          onValueChange={setSelectedLevel}
+          className="mb-12"
+        >
+          <TabsList className="bg-muted/50">
+            <TabsTrigger value="all">All Levels</TabsTrigger>
+            {Array.from(availableLevels).map(level => (
+              <TabsTrigger key={level} value={level}>
+                {level.charAt(0).toUpperCase() + level.slice(1)}
+              </TabsTrigger>
             ))}
-          </div>
-        </section>
+          </TabsList>
+        </Tabs>
+      )}
 
-        {/* Articles Section */}
-        <section>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold">
-              {selectedCategory === "all" 
-                ? "All Articles" 
-                : `${contentCategories.find(c => c.filter === selectedCategory)?.title}`}
-            </h2>
-            
-            {/* Only show tabs if there are levels available */}
-            {availableLevels.size > 0 && (
-              <Tabs
-                defaultValue="all"
-                value={selectedLevel}
-                onValueChange={setSelectedLevel}
-                className="w-auto"
-              >
-                <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  {Array.from(availableLevels).map(level => (
-                    <TabsTrigger key={level} value={level}>
-                      {level.charAt(0).toUpperCase() + level.slice(1)}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            )}
+      {/* Featured Article */}
+      {featuredArticle && (
+        <Link href={`/blog/${featuredArticle.slug}`}>
+          <div className="group relative rounded-2xl overflow-hidden mb-16 aspect-[2/1]">
+            <Image
+              src={featuredArticle.headerImage || '/default-header.jpg'}
+              alt={featuredArticle.title}
+              fill
+              className="object-cover transition-transform group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+            <div className="absolute bottom-0 p-8 text-white">
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="w-4 h-4" />
+                <span className="text-sm">Featured Article</span>
+              </div>
+              <h2 className="text-3xl font-bold mb-2 group-hover:text-emerald-400 transition-colors">
+                {featuredArticle.title}
+              </h2>
+              <p className="text-gray-300 line-clamp-2 mb-4">
+                {featuredArticle.excerpt}
+              </p>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {featuredArticle.readingTime} min read
+                </span>
+                <span className="px-2 py-1 bg-white/10 rounded-full">
+                  {featuredArticle.level}
+                </span>
+              </div>
+            </div>
           </div>
+        </Link>
+      )}
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {filteredArticles.map((article) => (
-              <Link key={article._id} href={`/blog/${article.slug}`}>
-                <Card className="h-full hover:bg-accent/50 transition-colors">
-                  <CardHeader>
-                    <div className="flex justify-between items-start mb-2">
-                      {/* <Badge
-                        variant="secondary"
-                        className={cn(
-                          "text-sm",
-                          article.level === "beginner" && "bg-green-100 text-green-800",
-                          article.level === "intermediate" && "bg-blue-100 text-blue-800",
-                          article.level === "advanced" && "bg-purple-100 text-purple-800"
-                        )}
-                      >
-                        {article.level}
-                      </Badge> */}
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Eye className="h-4 w-4 mr-1" />
-                        {article.views}
-                      </div>
-                    </div>
-                    <CardTitle className="line-clamp-2">{article.title}</CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      {article.excerpt}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {article.tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4 mr-1" />
+      {/* Trending Articles */}
+      <div className="mb-16">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5" />
+          Trending Articles
+        </h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {trendingArticles.map(article => (
+            <Link 
+              key={article._id} 
+              href={`/blog/${article.slug}`}
+              className="group"
+            >
+              <div className="rounded-xl overflow-hidden bg-muted/50 h-full">
+                <div className="relative aspect-[16/9]">
+                  <Image
+                    src={article.headerImage || '/default-header.jpg'}
+                    alt={article.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs">
+                      {article.level}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold mb-2 group-hover:text-emerald-600 transition-colors">
+                    {article.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                    {article.excerpt}
+                  </p>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock className="w-4 h-4 mr-1" />
+                    {article.readingTime} min read
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Regular Articles */}
+      <div>
+        <h2 className="text-2xl font-bold mb-6">Latest Articles</h2>
+        <div className="grid gap-6">
+          {regularArticles.map(article => (
+            <Link 
+              key={article._id} 
+              href={`/blog/${article.slug}`}
+              className="group"
+            >
+              <div className="flex gap-6 p-6 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                <div className="relative w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
+                  <Image
+                    src={article.headerImage || '/default-header.jpg'}
+                    alt={article.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs">
+                      {article.level}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold mb-2 group-hover:text-emerald-600 transition-colors">
+                    {article.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                    {article.excerpt}
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
                       {article.readingTime} min read
-                    </div>
-                    <Button variant="ghost" className="ml-auto">
-                      Read more <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </section>
-      </main>
+                    </span>
+                    <span className="flex items-center gap-1 group-hover:text-emerald-600 transition-colors">
+                      Read more <ArrowRight className="w-4 h-4" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

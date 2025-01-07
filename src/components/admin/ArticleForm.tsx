@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -44,7 +44,6 @@ const formSchema = z.object({
   category: z.enum(["article", "guide", "morph"]),
   level: z.enum(["beginner", "intermediate", "advanced"]),
   externalUrl: z.string().url().optional(),
-  videoUrl: z.string().url().optional(),
   tags: z.string().transform((str) => 
     str ? str.split(",").map((tag) => tag.trim()).filter(Boolean) : []
   ),
@@ -57,9 +56,6 @@ const formSchema = z.object({
     return false;
   }
   if (data.type === "external" && !data.externalUrl) {
-    return false;
-  }
-  if (data.type === "video" && !data.videoUrl) {
     return false;
   }
   return true;
@@ -80,11 +76,21 @@ interface ScrapedArticle {
   seoDescription?: string;
 }
 
-export function ArticleForm() {
+interface ArticleFormProps {
+  article?: Doc<"articles"> & {
+    author?: { name: string } | null;
+  };
+
+  defaultValues: any; 
+}
+
+
+
+export function ArticleForm({ article }: ArticleFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const createArticle = useMutation(api.articles.create);
-
+  const updateArticle = useMutation(api.articles.update);
 
   const [isImporting, setIsImporting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -94,23 +100,47 @@ export function ArticleForm() {
   );
   const [importError, setImportError] = useState<string | null>(null);
 
-
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      type: "markdown",
-      status: "draft",
-      category: "article",
-      level: "beginner",
-      title: "",
-      headerImage: "",
-      excerpt: "",
-      content: "",
-      tags: [],
-      seoTitle: "",
-      seoDescription: "",
+      type: article?.type || "markdown",
+      status: article?.status || "draft",
+      category: article?.category || "article",
+      level: article?.level || "beginner",
+      title: article?.title || "",
+      headerImage: article?.headerImage || "",
+      excerpt: article?.excerpt || "",
+      content: article?.content || "",
+      // Convert array to comma-separated string for tags 
+      tags: article?.tags || [],
+      seoTitle: article?.seoTitle || "",
+      seoDescription: article?.seoDescription || "",
+      // Add these conditionally
+      externalUrl: article?.type === "external" ? article.externalUrl : "",
     },
+    mode: "onChange",
   });
+
+  // Reset form when article changes
+  useEffect(() => {
+    if (article) {
+      form.reset({
+        type: article.type,
+        status: article.status,
+        category: article.category,
+        level: article.level,
+        title: article.title,
+        headerImage: article.headerImage || "",
+        excerpt: article.excerpt || "",
+        content: article.content || "",
+        tags: article.tags || [],
+        seoTitle: article.seoTitle || "",
+        seoDescription: article.seoDescription || "",
+        externalUrl: article.type === "external" ? article.externalUrl : "",
+      });
+    }
+  }, [article, form]);
+
 
   const articleType = form.watch("type");
   const isSubmitting = form.formState.isSubmitting;
@@ -138,7 +168,7 @@ export function ArticleForm() {
       form.setValue('title', article.title);
       form.setValue('content', article.content);
       form.setValue('excerpt', article.excerpt.slice(0, 280));
-      form.setValue('tags', article.tags.join(', '));
+      form.setValue('tags', Array.isArray(article.tags) ? article.tags.join(', ') : '');
       form.setValue('externalUrl', article.canonicalUrl);
       
       if (article.headerImage) {
@@ -167,8 +197,6 @@ export function ArticleForm() {
     }
   };
 
-  
-
   const onPreview = async (data: FormData) => {
     try {
       // If we already have a preview ID, don't create a new draft
@@ -179,7 +207,6 @@ export function ArticleForm() {
           content: data.content || "",
           tags: data.tags,
           externalUrl: data.type === "external" ? data.externalUrl : undefined,
-          videoUrl: data.type === "video" ? data.videoUrl : undefined,
         });
         
         setPreviewId(newArticle);
@@ -200,38 +227,88 @@ export function ArticleForm() {
     }
   };
 
-  const onPublish = async (data: FormData) => {
+  const handleFormSubmit = async (data: FormData) => {
+    console.log("Form submitted with data:", data);
+    const status = form.getValues("status");
+    
+    if (status === "draft") {
+      await onPreview(data);
+    } else {
+      await onSubmit(data);
+    }
+  };
+  
+
+  const onSubmit = async (data: FormData) => {
+    console.log("Starting onSubmit with data:"); // Debug log
+    
     try {
-      await createArticle({
-        ...data,
-        status: "published",
-        content: data.content || "",
-        tags: data.tags,
-        externalUrl: data.type === "external" ? data.externalUrl : undefined,
-        videoUrl: data.type === "video" ? data.videoUrl : undefined,
-      });
+      if (article) {
+        console.log("Updating article", article._id, "with data:", data); // Debug log
+        
+        // Transform the data to match the mutation requirements
+        const updateData = {
+          id: article._id,
+          type: data.type,
+          status: data.status,
+          category: data.category,
+          level: data.level,
+          title: data.title,
+          headerImage: data.headerImage || undefined,
+          excerpt: data.excerpt,
+          content: data.content || "",
+          tags: Array.isArray(data.tags) 
+            ? data.tags
+            : typeof data.tags === 'string' && data.tags
+              ? (data.tags as string).split(",").map((tag: string) => tag.trim()).filter(Boolean)
+              : [],
+          seoTitle: data.seoTitle || undefined,
+          seoDescription: data.seoDescription || undefined,
+          externalUrl: data.type === "external" ? data.externalUrl : undefined,
+        };
 
-      toast({
-        title: "Success",
-        description: "Article published successfully",
-      });
+        console.log("Calling updateArticle with:", updateData); // Debug log
+        
+        const result = await updateArticle(updateData);
+        console.log("Update result:", result); // Debug log
 
-      router.push("/admin");
+        toast({
+          title: "Success",
+          description: "Article updated successfully",
+        });
+        
+        router.push("/admin/articles");
+      } else {
+        console.log("Creating new article"); // Debug log
+        await createArticle({
+          ...data,
+          status: "published",
+          content: data.content || "",
+          tags: data.tags,
+          externalUrl: data.type === "external" ? data.externalUrl : undefined,
+        });
+        toast({
+          title: "Success",
+          description: "Article published successfully",
+        });
+      }
     } catch (error) {
-      console.error("Failed to publish article:", error);
+      console.error("Error in onSubmit:", error); // Detailed error logging
       toast({
         title: "Error",
-        description: "Failed to publish article. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save article. Please try again.",
         variant: "destructive",
       });
     }
   };
 
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(
-          form.getValues("status") === "draft" ? onPreview : onPublish
-        )} className="space-y-6 mt-4">
+      <form 
+        onSubmit={form.handleSubmit(handleFormSubmit)} 
+        className="space-y-6 mt-4"
+      >
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -436,25 +513,6 @@ export function ArticleForm() {
           )}
         />
 
-        {articleType === "video" && (
-          <FormField
-            control={form.control}
-            name="videoUrl"
-            render={({ field }: { field: any }) => (
-              <FormItem>
-                <FormLabel>Video URL</FormLabel>
-                <FormControl>
-                  <Input
-                    type="url"
-                    placeholder="https://youtube.com/..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
 
         {articleType === "markdown" || articleType === "external" && (
           <FormField
@@ -573,13 +631,20 @@ export function ArticleForm() {
           </Button>
         )}
 
-        {   previewArticle && previewOpen && (
+
+        {/* {   previewArticle && previewOpen && (
           <ContentPreview 
             article={{...previewArticle} as Doc<"articles">} 
             open={previewOpen} 
             onOpenChange={setPreviewOpen}
           />
-        )}
+        )} */}
+
+        {/* Add debug info */}
+        {/* <div className="mt-4 p-4 bg-gray-100 rounded">
+          <p>Form State:</p>
+          <pre>{JSON.stringify(form.formState, null, 2)}</pre>
+        </div> */}
 
       </form>
     </Form>

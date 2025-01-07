@@ -17,6 +17,8 @@ interface ArticleProps {
 
 export function Article({ article }: ArticleProps) {
     
+    console.log("Article tags:", article.tags);
+    
   return (
     <article className="space-y-8">
       <header className="space-y-4">
