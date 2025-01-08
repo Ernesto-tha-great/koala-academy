@@ -1,4 +1,3 @@
-// lib/guides.ts
 import { Command, Code2, ScrollText, Wallet, Network } from "lucide-react";
 
 export const guideCategories = [
