@@ -84,29 +84,24 @@ body {
   background-size: 32px 32px;
 }
 
-.bg-radial-pattern {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-  background-size: 40px 40px;
+/* Super smooth transitions for tab states */
+[data-state="active"] {
+  @apply bg-white text-emerald-700;
+  transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0); /* Enable hardware acceleration */
 }
 
-.bg-linear-pattern {
-  background-image: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.1) 1px,
-    transparent 1px,
-    transparent 10px
-  );
+[data-state="inactive"] {
+  @apply text-emerald-600 hover:bg-white/50;
+  transition: all 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0); /* Enable hardware acceleration */
 }
 
-.bg-dots-pattern {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-.bg-mesh-pattern {
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
+/* Optimize animations */
+.TabsTrigger {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  perspective: 1000;
+  will-change: background, color;
 }

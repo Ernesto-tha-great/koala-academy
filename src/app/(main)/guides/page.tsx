@@ -24,7 +24,7 @@ export default function GuidesPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="relative overflow-hidden bg-gradient-to-b from-emerald-100 via-emerald-50 to-white pb-32">
+      <div className="relative overflow-hidden bg-gradient-to-b from-emerald-200 via-emerald-100 to-white pb-32">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.05]" />
         <div className="container max-w-7xl mx-auto px-4">
           <div className="relative pt-32 pb-20">
