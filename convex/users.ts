@@ -53,7 +53,7 @@ export const createOrUpdate = mutation({
       userId: args.userId,
       email: args.email,
       name: args.name,
-      role: "admin", // Default role
+      role: "user", // Default role
       createdAt: timestamp,
       updatedAt: timestamp
     });

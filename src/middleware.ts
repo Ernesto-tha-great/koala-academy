@@ -7,21 +7,25 @@ import { api } from "../convex/_generated/api";
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 const isProtectedRoute = createRouteMatcher(['/locker(.*)'])
 
-export default clerkMiddleware(async (auth, req) => { // doesnt work
+export default clerkMiddleware((auth, req) => {
   if (isProtectedRoute(req)) {
-    const { userId } = await auth();
-    console.log("lomaaa",userId);
-    if (!userId) return NextResponse.redirect(new URL('/sign-in', req.url));
-    
-    try {
-      const isAdmin = await convex.query(api.users.isAdmin);
-      if (!isAdmin) return NextResponse.redirect(new URL('/', req.url));
-    } catch (error) {
-      console.error('Admin check failed:', error);
-      return NextResponse.redirect(new URL('/', req.url));
-    }
+    return auth().then(async ({ userId }) => {
+      if (!userId) {
+        return NextResponse.redirect(new URL('/sign-in', req.url));
+      }
+      
+      try {
+        const isAdmin = await convex.query(api.users.isAdmin);
+        if (!isAdmin) {
+          return NextResponse.redirect(new URL('/', req.url));
+        }
+      } catch (error) {
+        console.error('Admin check failed:', error);
+        return NextResponse.redirect(new URL('/', req.url));
+      }
+    });
   }
-})
+});
 
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
