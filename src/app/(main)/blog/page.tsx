@@ -4,11 +4,12 @@ import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, TrendingUp, Star, ArrowRight } from "lucide-react";
+import { Clock, TrendingUp, Star, ArrowRight, Search, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { Command, CommandInput, CommandList, CommandGroup, CommandItem } from "@/components/ui/command";
 
 // Add this Skeleton component
 function Skeleton({ className }: { className?: string }) {
@@ -35,12 +36,25 @@ function Skeleton({ className }: { className?: string }) {
   );
 }
 
+// Add these categories
+const CATEGORIES = [
+  { name: "Oracles", icon: "🔮" },
+  { name: "Subgraphs", icon: "📊" },
+  { name: "Account Abstraction", icon: "🔐" },
+  { name: "Smart Contracts", icon: "📝" },
+  { name: "ZK Proofs", icon: "🔒" },
+  { name: "MEV", icon: "⚡" },
+];
+
 export default function BlogPage() {
   const articles = useQuery(api.articles.list, {
     limit: 10,
   });
   
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Get available levels from articles
   const availableLevels = useMemo(() => {
@@ -64,6 +78,23 @@ export default function BlogPage() {
   const featuredArticle = filteredArticles[0];
   const trendingArticles = filteredArticles.slice(1, 4);
   const regularArticles = filteredArticles.slice(4);
+
+  // Add this handler
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(category) 
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  // Modify the clear search handler
+  const handleClearSearch = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSearchQuery("");
+    // Optionally, also clear selected categories
+    setSelectedCategories([]);
+  };
 
   if (!articles) {
     return (
@@ -144,21 +175,97 @@ export default function BlogPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative pt-32 pb-20"
+            className="relative pt-32"
           >
             <div className="max-w-3xl">
               <h1 className="text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-900">
                 Technical Articles
               </h1>
-              <p className="text-xl text-emerald-700 mb-12">
+              <p className="text-xl text-emerald-700 mb-8">
                 Deep dives into blockchain development, L2 scaling, and web3 architecture
               </p>
-              {/* Integrated Filter */}
-              <motion.div 
+
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="inline-flex bg-white/50 backdrop-blur-sm rounded-full p-1"
+              >
+               <div 
+  className={cn(
+    "relative bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm w-full cursor-pointer",
+    "border border-emerald-100/50 transition-all duration-500",
+    isSearchOpen ? "ring-2 ring-emerald-500 ring-opacity-50" : ""
+  )}
+  onClick={() => setIsSearchOpen(true)}
+>
+  <Command className="rounded-lg border-0 bg-transparent w-full [&_[cmdk-input-wrapper]]:block">
+    <div className="flex items-center px-4 w-full">
+      <Search className="w-4 h-4 text-emerald-500 mr-2 flex-shrink-0" />
+      <CommandInput 
+        placeholder="Search articles..."
+        onFocus={() => setIsSearchOpen(true)}
+        value={searchQuery}
+        onValueChange={setSearchQuery}
+        className="py-6 w-full border-0 outline-none focus:ring-0 bg-transparent [&_input]:border-0 [&_input]:bg-transparent [&_input]:outline-none [&_input]:focus:ring-0 [&_input]:w-full [&_input]:p-0"
+      />
+      {searchQuery && (
+        <X 
+          className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-emerald-500 transition-colors flex-shrink-0"
+          onClick={handleClearSearch}
+        />
+      )}
+    </div>
+    {isSearchOpen && (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+      >
+        <CommandList>
+          <CommandGroup heading="Categories">
+            <div className="p-4 flex flex-wrap gap-2">
+              {CATEGORIES.map((category) => (
+                <motion.button
+                  key={category.name}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleCategory(category.name);
+                  }}
+                  className={cn(
+                    "px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-2",
+                    "transition-all duration-200",
+                    selectedCategories.includes(category.name)
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 text-slate-700 hover:bg-emerald-50"
+                  )}
+                >
+                  <span>{category.icon}</span>
+                  {category.name}
+                </motion.button>
+              ))}
+            </div>
+          </CommandGroup>
+          {searchQuery && (
+            <CommandGroup heading="Results">
+              {/* Add your search results here */}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </motion.div>
+    )}
+  </Command>
+</div>
+              </motion.div>
+
+              {/* Level Filter */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mt-8 inline-flex bg-white/50 backdrop-blur-sm rounded-full p-1"
               >
                 <Tabs
                   defaultValue="all"
@@ -347,6 +454,14 @@ export default function BlogPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Click outside handler */}
+      {isSearchOpen && (
+        <div 
+          className="fixed inset-0 z-0"
+          onClick={() => setIsSearchOpen(false)}
+        />
+      )}
     </div>
   );
 }

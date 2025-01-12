@@ -23,7 +23,7 @@ export default function GuidesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white bg-dot-pattern">
       <div className="relative overflow-hidden bg-gradient-to-b from-emerald-200 via-emerald-100 to-white pb-32">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.05]" />
         <div className="container max-w-7xl mx-auto px-4">
@@ -44,7 +44,7 @@ export default function GuidesPage() {
         </div>
       </div>
 
-      <div className="container max-w-7xl mx-auto px-4 -mt-24">
+      <div className="container max-w-7xl mx-auto px-4 -mt-24 ">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
