@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useQuery } from "convex/react";
+
 import { api } from "../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 // import { LikeButton } from "./LikeButton";

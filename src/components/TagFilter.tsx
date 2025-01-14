@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 interface TagFilterProps {

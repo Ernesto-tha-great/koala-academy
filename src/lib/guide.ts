@@ -35,4 +35,4 @@ export const guideCategories = [
 
 export function getGuideCategory(slug: string) {
   return guideCategories.find(category => category.slug === slug);
-}
+}  

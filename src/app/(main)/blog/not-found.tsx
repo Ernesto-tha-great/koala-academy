@@ -7,7 +7,7 @@ export default function NotFound() {
       <div className="text-center space-y-4">
         <h2 className="text-2xl font-bold">Article Not Found</h2>
         <p className="text-muted-foreground">
-          The article you're looking for doesn't exist or has been removed.
+          The article you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
         <Button asChild>
           <Link href="/blog">Back to Articles</Link>

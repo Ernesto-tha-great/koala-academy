@@ -11,9 +11,11 @@ import { RelatedArticles } from "../../../../components/RelatedArticles";
 import { api } from "../../../../../convex/_generated/api";
 import ArticleLoadingSkeleton from "@/components/Skeleton";
 
+
+
 export default function ArticlePage() {
   const params = useParams();
-  const [article, setArticle] = useState<any | null>(null);
+  const [article, setArticle] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const recordView = useMutation(api.articles.recordView);
 
@@ -36,7 +38,7 @@ export default function ArticlePage() {
     }
 
     loadArticle();
-  }, [params.slug]);
+  }, [params.slug, recordView]);
 
   if (isLoading) {
     return <ArticleLoadingSkeleton />;
