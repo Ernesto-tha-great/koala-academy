@@ -10,7 +10,14 @@ interface Props {
   };
 }
 
-export default function MorphSectionPage({ params }: Props) {
+interface PageProps {
+  params: {
+    slug: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function MorphSectionPage({ params, searchParams }: PageProps) {
   const section = getMorphSection(params.slug);
   
   if (!section) {
