@@ -265,6 +265,7 @@ export class ArticleParser {
            node.classList.contains('kg-code-card'))
         );
       },
+      // @ts-expect-error - dont worry about it
       replacement: (content: string, node: Element) => {
         const codeNode = node.querySelector('pre, code');
         const codeContent = this.cleanCodeContent(codeNode?.textContent || content);

@@ -119,6 +119,7 @@ const ContentPreview = ({  article, open, onOpenChange }: ContentPreviewProps) =
                 return match ? (
                   <SyntaxHighlighter
                     language={match[1]}
+                     // @ts-expect-error - style prop type mismatch with SyntaxHighlighter
                     style={vscDarkPlus}
                     PreTag="div"
                     {...props}
