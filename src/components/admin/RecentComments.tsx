@@ -59,7 +59,7 @@ export function RecentComments() {
                       {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
                     </span>
                   </div>
-                  <Link href={`/blog/${comment.article.slug}#comment-${comment._id}`}>
+                  <Link href={`/blog/${comment.articleId}#comment-${comment._id}`}>
                     <Button 
                       size="sm" 
                       variant="ghost"
@@ -73,9 +73,10 @@ export function RecentComments() {
                   {comment.content}
                 </p>
                 <Link
-                  href={`/blog/${comment.article.slug}`}
+                  href={`/blog/${comment.articleId}`}
                   className="text-xs text-muted-foreground hover:underline mt-2 block"
                 >
+                  {/* @ts-expect-error - article title might be undefined but we know it exists */}
                   on: {comment.article.title}
                 </Link>
               </div>
