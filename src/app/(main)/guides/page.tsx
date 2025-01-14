@@ -7,7 +7,6 @@ import { api } from "../../../../convex/_generated/api";
 import { GuideCard } from "@/components/guides/guide-card";
 import { guideCategories } from "@/lib/guide";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Sparkles } from "lucide-react";
 
 export default function GuidesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

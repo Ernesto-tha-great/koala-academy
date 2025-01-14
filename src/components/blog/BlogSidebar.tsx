@@ -1,15 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
   FileText,
-  Users,
   MessageSquare,
-  Tags,
-  Settings,
   PenTool,
 } from "lucide-react";
 

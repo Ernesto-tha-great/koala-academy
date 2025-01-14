@@ -7,13 +7,9 @@ import {
   LayoutDashboard,
   FileText,
   Users,
-  MessageSquare,
-  Tags,
   Settings,
   PenTool,
 } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
 
 const navigation = [
   {

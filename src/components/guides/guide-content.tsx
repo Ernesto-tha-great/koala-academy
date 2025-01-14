@@ -1,4 +1,4 @@
-import { MDXRemote } from 'next-mdx-remote';
+
 import { compileMDX } from 'next-mdx-remote/rsc';
 import { cn } from "@/lib/utils";
 

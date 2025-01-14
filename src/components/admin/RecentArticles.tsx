@@ -5,7 +5,6 @@ import { api } from "../../../convex/_generated/api";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, FileEdit } from "lucide-react";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowUpRight, Sparkles, Zap, Shield, Scale, ArrowDown, Layers, Blocks, Network } from "lucide-react";
+import { ArrowUpRight, Sparkles, Zap,  Scale, ArrowDown, Layers, Blocks, Network } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useMemo } from "react";
@@ -129,7 +129,7 @@ export default function MorphPage() {
             transition={{ delay: 0.2 }}
             className="text-2xl text-center text-emerald-700 max-w-3xl mx-auto mb-20"
           >
-            Explore the fundamental concepts powering Morph's next-generation Layer 2
+            Explore the fundamental concepts powering Morph&apos;s next-generation Layer 2
           </motion.p>
 
           {/* Animated Scroll Indicator */}

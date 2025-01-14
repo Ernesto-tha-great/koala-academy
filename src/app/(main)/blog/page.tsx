@@ -3,15 +3,15 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, TrendingUp, Star, ArrowRight, Search, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Command, CommandInput, CommandList, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput, CommandList, CommandGroup, } from "@/components/ui/command";
 
-// Add this Skeleton component
+
 function Skeleton({ className }: { className?: string }) {
   return (
     <motion.div

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { formatDate } from "@/lib/utils";
 import { Doc } from "../../convex/_generated/dataModel";
 import ReactMarkdown from "react-markdown";

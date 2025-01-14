@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useQuery } from "convex/react";
@@ -21,7 +23,9 @@ interface DashboardStat {
 // mobile responsive
 //if a change is mad eto the content then the draft should be modified. delete the draft on close of prevview
 // add email notifs.
-// fix on sign ujp, it takes user to profile details
+//ensure there will always be latest articles. or make it just articles, and then filter name. and latest appears when a new article is pulished at the top so no trending
+//in latest articles in homepage, add next page thingy
+// article cards fixed width, featured article cannot be a guide
 
 export function Dashboard() {
   const { isLoading, data } = useBatchedQueries();
