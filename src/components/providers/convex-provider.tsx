@@ -28,7 +28,7 @@ export function ConvexClientProvider({
 function InitUser({ children }: { children: React.ReactNode }) {
   const { isLoaded, userId } = useAuth();
   const { user } = useUser();
-  const createOrUpdateUser = useMutation(api.users.createOrUpdate);
+  const createOrUpdateUser = useMutation(api.users.create);
 
   useEffect(() => {
     if (isLoaded && user) {
@@ -36,7 +36,6 @@ function InitUser({ children }: { children: React.ReactNode }) {
         userId: user.id,
         email: user.primaryEmailAddress?.emailAddress || "",
         name: user.fullName || "Anonymous",
-        admin: true,
       }).catch(console.error);
     }
   }, [isLoaded, user, createOrUpdateUser]);

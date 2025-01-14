@@ -19,17 +19,9 @@ interface DashboardStat {
 
 // to fix
 // mobile responsive
-// while importing, some links dont work
-// dashboard should be user related. morph team should have one and authors should have one
-// 6. user management
-// fix signup where everyone is admin
-// dashboard for approving content maybe
-// 7. add a new card for total authors
-
-//if a change is mad eto the content then the draft should be modified
-
-// add oracles, subgraphs, etc to the article oage and also a searchba
-
+//if a change is mad eto the content then the draft should be modified. delete the draft on close of prevview
+// add email notifs.
+// fix on sign ujp, it takes user to profile details
 
 export function Dashboard() {
   const { isLoading, data } = useBatchedQueries();

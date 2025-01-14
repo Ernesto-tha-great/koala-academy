@@ -139,3 +139,24 @@ body {
 .search-results::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1;
 }
+
+.prose ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  margin-left: 1.5em !important;
+}
+
+.prose ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  margin-left: 1.5em !important;
+}
+
+.prose li {
+  margin-top: 0.5em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.prose li > p {
+  margin: 0 !important;
+}

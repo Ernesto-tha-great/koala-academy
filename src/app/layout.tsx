@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import {
   ClerkProvider,
-
 } from '@clerk/nextjs'
 import { Manrope } from "next/font/google";
 import localFont from "next/font/local";
@@ -37,7 +36,7 @@ export default function RootLayout({
       <body
         className={`${manrope.variable} ${geistMono.variable} antialiased`}
       >
-        <ClerkProvider >
+        <ClerkProvider signUpForceRedirectUrl={"/"} >
           <ConvexClientProvider>
             <MainNav />
             {children}
