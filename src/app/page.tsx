@@ -5,6 +5,7 @@ import { ArticleList } from "@/components/ArticleList";
 import { TagFilter } from "@/components/TagFilter";
 import ArticleOfTheWeek from "@/components/ArticleOfTheWeek";
 import { motion } from "framer-motion";
+import { Suspense } from "react";
 
 export default function Home() { 
   return (
@@ -23,7 +24,9 @@ export default function Home() {
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
         >
           <section className="py-24">
-            <ArticleOfTheWeek />
+            <Suspense fallback={<div>Loading article of the week...</div>}>
+              <ArticleOfTheWeek />
+            </Suspense>
           </section>
 
           {/* Latest Articles Section */}
@@ -39,7 +42,9 @@ export default function Home() {
                 Latest Articles
               </h2>
               <div className="flex items-center gap-4">
-                <TagFilter />
+                <Suspense fallback={<div>Loading filters...</div>}>
+                  <TagFilter />
+                </Suspense>
               </div>
             </motion.div>
 
@@ -49,7 +54,9 @@ export default function Home() {
               viewport={{ once: true, margin: "-100px" }}
               transition={{ duration: 0.6, delay: 0.2 }}
             >
-              <ArticleList />
+              <Suspense fallback={<div>Loading articles...</div>}>
+                <ArticleList />
+              </Suspense>
             </motion.div>
           </section>
         </motion.div>
