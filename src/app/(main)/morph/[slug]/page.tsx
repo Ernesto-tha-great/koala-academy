@@ -6,18 +6,10 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 
-interface Props {
-  params: {
-    slug: string;
-  };
-}
-
-interface PageProps {
-  params: {
-    slug: string;
-  };
+export type PageProps = {
+  params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
-}
+} & any;
 
 export default async function MorphSectionPage({ params, searchParams }: PageProps) {
   const section = getMorphSection(params.slug);
