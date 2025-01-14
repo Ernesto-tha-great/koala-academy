@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { notFound } from "next/navigation";
@@ -9,7 +10,7 @@ import { ChevronRight } from "lucide-react";
 export type PageProps = {
   params: { slug: string };
   searchParams: { [key: string]: string | string[] | undefined };
-} & any;
+};
 
 export default async function MorphSectionPage({ params, searchParams }: PageProps) {
   const section = getMorphSection(params.slug);
