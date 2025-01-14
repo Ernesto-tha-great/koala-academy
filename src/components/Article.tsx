@@ -4,8 +4,8 @@ import { Doc } from "../../convex/_generated/dataModel";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
-import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Image from "next/image";
 
 interface ArticleProps {
@@ -121,9 +121,9 @@ export function Article({ article }: ArticleProps) {
               const match = /language-(\w+)/.exec(className || "");
               return match ? (
                 <SyntaxHighlighter
-                  // @ts-ignore
-                  style={vscDarkPlus}
                   language={match[1]}
+                      // @ts-expect-error - style prop type mismatch with SyntaxHighlighter
+                  style={vscDarkPlus}
                   PreTag="div"
                   {...props}
                 >
