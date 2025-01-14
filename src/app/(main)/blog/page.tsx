@@ -51,10 +51,33 @@ export default function BlogPage() {
     limit: 10,
   });
   
+  // Move state declarations to the top
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  // Then do the filtering - exclude both guides and morph content
+  const nonGuideArticles = useMemo(() => {
+    if (!articles) return [];
+    return articles.filter(article => 
+      article.category !== "guide" && 
+      article.category !== "morph" && 
+      article.status === "published"
+    );
+  }, [articles]);
+
+  // Then apply level filtering
+  const filteredArticles = useMemo(() => {
+    return nonGuideArticles.filter(article => 
+      selectedLevel === "all" || article.level === selectedLevel
+    );
+  }, [nonGuideArticles, selectedLevel]);
+
+  // Separate featured and regular articles from non-guides
+  const featuredArticle = filteredArticles[0];
+  const trendingArticles = filteredArticles.slice(1, 4);
+  const regularArticles = filteredArticles.slice(4);
 
   // Get available levels from articles
   const availableLevels = useMemo(() => {
@@ -65,19 +88,6 @@ export default function BlogPage() {
     });
     return levels;
   }, [articles]);
-
-  // Filter articles based on level
-  const filteredArticles = useMemo(() => {
-    if (!articles) return [];
-    return articles.filter(article => 
-      selectedLevel === "all" || article.level === selectedLevel
-    );
-  }, [articles, selectedLevel]);
-
-  // Separate featured and regular articles
-  const featuredArticle = filteredArticles[0];
-  const trendingArticles = filteredArticles.slice(1, 4);
-  const regularArticles = filteredArticles.slice(4);
 
   // Add this handler
   const toggleCategory = (category: string) => {

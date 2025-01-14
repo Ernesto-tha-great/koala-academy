@@ -39,7 +39,7 @@ export function GuideCard({ guide }: GuideCardProps) {
   const levelStyle = levelColors[guide.level as keyof typeof levelColors];
 
   return (
-    <Link href={`/guides/${guide.slug}`}>
+    <Link href={`/guides/${guide.slug}`} className="block w-full max-w-[400px] mx-auto">
       <motion.div 
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2 }}
@@ -48,7 +48,8 @@ export function GuideCard({ guide }: GuideCardProps) {
           "border border-slate-200/50",
           "transition-all duration-300",
           "hover:shadow-lg hover:shadow-emerald-100/50",
-          "hover:border-emerald-200/50"
+          "hover:border-emerald-200/50",
+          "w-full"
         )}
       >
         {/* Level Badge */}

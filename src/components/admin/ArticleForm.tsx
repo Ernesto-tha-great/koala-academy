@@ -43,7 +43,7 @@ const formSchema = z.object({
   content: z.string().optional(),
   category: z.enum(["article", "guide", "morph"]),
   level: z.enum(["beginner", "intermediate", "advanced"]),
-  externalUrl: z.string().url().optional(),
+  externalUrl: z.string().url().optional().or(z.literal("")),
   tags: z.string().transform((str) => 
     str ? str.split(",").map((tag) => tag.trim()).filter(Boolean) : []
   ),
@@ -52,10 +52,10 @@ const formSchema = z.object({
     .max(160, "SEO description must be less than 160 characters")
     .optional(),
 }).refine((data) => {
-  if (data.type === "markdown" && !data.content) {
+  if (data.type === "external" && !data.externalUrl) {
     return false;
   }
-  if (data.type === "external" && !data.externalUrl) {
+  if (data.type === "markdown" && !data.content) {
     return false;
   }
   return true;
@@ -141,8 +141,24 @@ export function ArticleForm({ article }: ArticleFormProps) {
     }
   }, [article, form]);
 
-
+  // Add watchers for key fields
   const articleType = form.watch("type");
+  const content = form.watch("content");
+  const status = form.watch("status");
+
+  // Add debug watcher
+  useEffect(() => {
+    console.log("Form State Changed:", {
+      type: articleType,
+      content: content ? `${content.slice(0, 50)}...` : null,
+      status,
+      isValid: form.formState.isValid,
+      errors: form.formState.errors,
+      isDirty: form.formState.isDirty,
+      isSubmitting: form.formState.isSubmitting
+    });
+  }, [articleType, content, status, form.formState]);
+
   const isSubmitting = form.formState.isSubmitting;
 
   const handleImport = async (url: string) => {
@@ -199,26 +215,23 @@ export function ArticleForm({ article }: ArticleFormProps) {
 
   const onPreview = async (data: FormData) => {
     try {
-      // If we already have a preview ID, don't create a new draft
-      if (!previewId) {
-        const newArticle = await createArticle({
-          ...data,
-          status: "draft",
-          content: data.content || "",
-          tags: data.tags,
-          externalUrl: data.type === "external" ? data.externalUrl : undefined,
-        });
-        
-        setPreviewId(newArticle);
-        toast({
-          title: "Success",
-          description: "Draft saved successfully",
-        });
-      }
-
+      const articleId = await createArticle({
+        ...data,
+        status: "draft",
+        content: data.content || "",
+        tags: data.tags,
+        externalUrl: data.type === "external" ? data.externalUrl : undefined,
+      });
+      
+      setPreviewId(articleId);
       setPreviewOpen(true);
+
+      toast({
+        title: "Success",
+        description: "Draft saved successfully",
+      });
     } catch (error) {
-      console.error("Failed save draft:", error);
+      console.error("Failed to save draft:", error);
       toast({
         title: "Error",
         description: "Failed to save draft. Please try again.",
@@ -232,6 +245,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
     const status = form.getValues("status");
     
     if (status === "draft") {
+      console.log("Draft status detected");
       await onPreview(data);
     } else {
       await onSubmit(data);
@@ -240,13 +254,10 @@ export function ArticleForm({ article }: ArticleFormProps) {
   
 
   const onSubmit = async (data: FormData) => {
-    console.log("Starting onSubmit with data:"); // Debug log
     
     try {
       if (article) {
-        console.log("Updating article", article._id, "with data:", data); // Debug log
-        
-        // Transform the data to match the mutation requirements
+
         const updateData = {
           id: article._id,
           type: data.type,
@@ -267,10 +278,10 @@ export function ArticleForm({ article }: ArticleFormProps) {
           externalUrl: data.type === "external" ? data.externalUrl : undefined,
         };
 
-        console.log("Calling updateArticle with:", updateData); // Debug log
+        console.log("Calling updateArticle with:", updateData); 
         
         const result = await updateArticle(updateData);
-        console.log("Update result:", result); // Debug log
+        console.log("Update result:", result); 
 
         toast({
           title: "Success",
@@ -279,7 +290,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
         
         router.push("/admin/articles");
       } else {
-        console.log("Creating new article"); // Debug log
+        console.log("Creating new article"); 
         await createArticle({
           ...data,
           status: "published",
@@ -291,9 +302,10 @@ export function ArticleForm({ article }: ArticleFormProps) {
           title: "Success",
           description: "Article published successfully",
         });
+        router.push("/blog");
       }
     } catch (error) {
-      console.error("Error in onSubmit:", error); // Detailed error logging
+      console.error("Error in onSubmit:", error); 
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save article. Please try again.",
@@ -513,12 +525,11 @@ export function ArticleForm({ article }: ArticleFormProps) {
           )}
         />
 
-
-        {articleType === "markdown" || articleType === "external" && (
+        {(articleType === "markdown" || articleType === "external") && (
           <FormField
             control={form.control}
             name="content"
-            render={({ field }: { field: any }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Content</FormLabel>
                 <FormControl>
@@ -533,6 +544,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
             )}
           />
         )}
+        
 
         <FormField
           control={form.control}
@@ -602,7 +614,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
         {form.getValues("status") === "draft" ? (
                  <Button 
                  type="submit"
-                   disabled={isSubmitting} 
+                   disabled={isSubmitting || ((articleType === "markdown" || articleType === "external") && !form.getValues("content"))} 
                    className="w-full bg-[#0f603c]"
                  >
                    {isSubmitting ? (
@@ -617,7 +629,7 @@ export function ArticleForm({ article }: ArticleFormProps) {
         ) : (
             <Button 
             type="submit" 
-            disabled={isSubmitting} 
+            disabled={isSubmitting || ((articleType === "markdown" || articleType === "external") && !form.getValues("content"))} 
             className="w-full"
           >
             {isSubmitting ? (
@@ -632,13 +644,13 @@ export function ArticleForm({ article }: ArticleFormProps) {
         )}
 
 
-        {/* {   previewArticle && previewOpen && (
+        {previewArticle && previewOpen && (
           <ContentPreview 
-            article={{...previewArticle} as Doc<"articles">} 
+            article={previewArticle} 
             open={previewOpen} 
             onOpenChange={setPreviewOpen}
           />
-        )} */}
+        )}
 
         {/* Add debug info */}
         {/* <div className="mt-4 p-4 bg-gray-100 rounded">

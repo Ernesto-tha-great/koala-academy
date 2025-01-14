@@ -41,6 +41,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'lh7-us.googleusercontent.com',
       },
+        {
+        protocol: 'https',
+        hostname: 'docs.morphl2.io',
+      },
     ],
   },
 };

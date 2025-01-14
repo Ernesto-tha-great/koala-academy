@@ -55,9 +55,10 @@ export function Article({ article }: ArticleProps) {
       )}
 
 
-      <div className="prose prose-lg max-w-none">
+      <div className="article-content">
         <ReactMarkdown
-          rehypePlugins={[rehypeRaw, remarkGfm]}
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
           components={{
             h1: ({node, children, ...props}) => (
                 <h1 className="text-4xl font-bold mt-8 mb-4" {...props}>{children}</h1>
@@ -95,12 +96,26 @@ export function Article({ article }: ArticleProps) {
                     width={800}
                     height={400}
                     className="rounded-lg"
-                    // unoptimized={src.startsWith('http')}
                     loading="lazy"
                   />
                 </div>
               );
             },
+            ul: ({children}) => (
+              <ul className="list-disc list-inside space-y-2 my-4">
+                {children}
+              </ul>
+            ),
+            ol: ({children}) => (
+              <ol className="list-inside list-decimal space-y-2 my-4">
+                {children}
+              </ol>
+            ),
+            li: ({children}) => (
+              <li className="ml-4">
+                {children}
+              </li>
+            ),
             code({ node, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || "");
               return match ? (
@@ -118,6 +133,65 @@ export function Article({ article }: ArticleProps) {
                 </code>
               );
             },
+            a: ({href, children}) => (
+              <a 
+                href={href}
+                className="text-blue-500 hover:text-blue-700 underline font-medium"
+                style={{
+                  color: '#3b82f6',
+                  textDecoration: 'underline',
+                  fontWeight: 500
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {children}
+              </a>
+            ),
+            table: ({children}) => (
+              <div className="overflow-x-auto my-8">
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  border: '2px solid #e5e7eb',
+                }}>
+                  {children}
+                </table>
+              </div>
+            ),
+            thead: ({children}) => (
+              <thead style={{ backgroundColor: '#f9fafb' }}>
+                {children}
+              </thead>
+            ),
+            tbody: ({children}) => (
+              <tbody style={{ backgroundColor: 'white' }}>
+                {children}
+              </tbody>
+            ),
+            tr: ({children}) => (
+              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                {children}
+              </tr>
+            ),
+            th: ({children}) => (
+              <th style={{
+                padding: '12px 16px',
+                textAlign: 'left',
+                fontWeight: '600',
+                borderRight: '1px solid #e5e7eb'
+              }}>
+                {children}
+              </th>
+            ),
+            td: ({children}) => (
+              <td style={{
+                padding: '12px 16px',
+                borderRight: '1px solid #e5e7eb'
+              }}>
+                {children}
+              </td>
+            ),
           }}
         >
           {article.content}
