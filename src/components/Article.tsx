@@ -122,6 +122,7 @@ export function Article({ article }: ArticleProps) {
               return match ? (
                 <SyntaxHighlighter
                   language={match[1]}
+                      // @ts-expect-error - style prop type mismatch with SyntaxHighlighter
                   style={vscDarkPlus}
                   PreTag="div"
                   {...props}
