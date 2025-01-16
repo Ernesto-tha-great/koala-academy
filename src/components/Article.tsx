@@ -119,6 +119,7 @@ export function Article({ article }: ArticleProps) {
                 <div className="my-4 sm:my-6 text-sm sm:text-base overflow-x-auto">
                   <SyntaxHighlighter
                     language={match[1]}
+                   /* @ts-expect-error - highlight.js types are not compatible with react-syntax-highlighter */
                     style={vscDarkPlus}
                     PreTag="div"
                     {...props}
