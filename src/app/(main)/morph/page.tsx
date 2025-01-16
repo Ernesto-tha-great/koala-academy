@@ -54,7 +54,7 @@ export default function MorphPage() {
       title: remainingArticles[0]?.title || "Modular Design",
       description: remainingArticles[0]?.excerpt?.split('.')[0] || "Flexible architecture enabling seamless upgrades",
       icon: Scale,
-      link: `/morph/${remainingArticles[0]?.slug || "modular-design"}`,
+      link: `/blog/${remainingArticles[0]?.slug || "modular-design"}`,
       color: "from-emerald-50"
     },
     {
@@ -62,7 +62,7 @@ export default function MorphPage() {
       title: remainingArticles[1]?.title || "Optimistic zkEVM",
       description: remainingArticles[1]?.excerpt || "High-performance execution",
       icon: Zap,
-      link: `/morph/${remainingArticles[1]?.slug || "zkevm"}`,
+      link: `/blog/${remainingArticles[1]?.slug || "zkevm"}`,
       color: "from-blue-50"
     },
     {
@@ -70,7 +70,7 @@ export default function MorphPage() {
       title: remainingArticles[2]?.title || "Decentralized Sequencers",
       description: remainingArticles[2]?.excerpt || "Decentralized transaction ordering",
       icon: Sparkles,
-      link: `/morph/${remainingArticles[2]?.slug || "sequencer"}`,
+      link: `/blog/${remainingArticles[2]?.slug || "sequencer"}`,
       color: "from-purple-50"
     }
   ];
@@ -82,7 +82,7 @@ export default function MorphPage() {
       title: remainingArticles[3]?.title || "Rollups Deep Dive",
       description: remainingArticles[3]?.excerpt || "Understanding rollup technology",
       icon: Layers,
-      link: `/morph/${remainingArticles[3]?.slug || "rollups"}`,
+      link: `/blog/${remainingArticles[3]?.slug || "rollups"}`,
       color: "from-orange-50"
     },
     {
@@ -90,7 +90,7 @@ export default function MorphPage() {
       title: remainingArticles[4]?.title || "Morph & Ethereum",
       description: remainingArticles[4]?.excerpt || "Ethereum L1 interaction",
       icon: Network,
-      link: `/morph/${remainingArticles[4]?.slug || "ethereum"}`,
+      link: `/blog/${remainingArticles[4]?.slug || "ethereum"}`,
       color: "from-pink-50"
     },
     {
@@ -98,7 +98,7 @@ export default function MorphPage() {
       title: remainingArticles[5]?.title || "Transaction Lifecycle",
       description: remainingArticles[5]?.excerpt || "Transaction flow through network",
       icon: Blocks,
-      link: `/morph/${remainingArticles[5]?.slug || "transaction-lifecycle"}`,
+      link: `/blog/${remainingArticles[5]?.slug || "transaction-lifecycle"}`,
       color: "from-violet-50"
     }
   ];
@@ -162,7 +162,7 @@ export default function MorphPage() {
               whileInView={{ opacity: 1, y: 0 }}
               className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100"
             >
-              <Link href={`/morph/${featuredArticle.slug}`} className="block">
+              <Link href={`/blog/${featuredArticle.slug}`} className="block">
                 <div className="flex flex-col lg:flex-row gap-8 p-8">
                   <div className="lg:w-1/2 space-y-6">
                     <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
