@@ -17,44 +17,42 @@ interface ArticleProps {
 }
 
 export function Article({ article }: ArticleProps) {
-    
-    console.log("Article tags:", article.tags);
-    
   return (
-    <article className="space-y-8">
+    <article className="space-y-6 md:space-y-8">
       <header className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {article.tags.map((tag) => (
             <span
               key={tag}
-              className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full"
+              className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-100 text-blue-800 rounded-full"
             >
               {tag}
             </span>
           ))}
         </div>
         
-        <h1 className="text-4xl font-bold">{article.title}</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">{article.title}</h1>
         
-        <div className="flex items-center gap-4 text-gray-600">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-gray-600 text-sm sm:text-base">
           <div className="flex items-center gap-2">
-            <span>
-                {article.author.name}</span>
-            <span>•</span>
+            <span>{article.author.name}</span>
+            <span className="hidden sm:inline">•</span>
+          </div>
+          <div className="flex items-center gap-2">
             <time dateTime={article.publishedAt ? new Date(article.publishedAt).toISOString() : ''}>
               {article.publishedAt ? formatDate(article.publishedAt) : ''}
             </time>
+            <span>•</span>
+            <span>{article.readingTime} min read</span>
           </div>
-          <span>{article.readingTime} min read</span>
         </div>
       </header>
 
       {article.headerImage && (
-        <div className="w-full h-96 relative">
-          <Image  src={article.headerImage} alt={article.title} fill className="object-cover" />
+        <div className="w-full h-48 sm:h-64 md:h-96 relative rounded-lg overflow-hidden">
+          <Image src={article.headerImage} alt={article.title} fill className="object-cover" />
         </div>
       )}
-
 
       <div className="article-content">
         <ReactMarkdown
@@ -62,137 +60,86 @@ export function Article({ article }: ArticleProps) {
           rehypePlugins={[rehypeRaw]}
           components={{
             h1: ({node, children, ...props}) => (
-                <h1 className="text-4xl font-bold mt-8 mb-4" {...props}>{children}</h1>
-              ),
-              h2: ({node, children, ...props}) => (
-                <h2 className="text-3xl font-bold mt-8 mb-4" {...props}>{children}</h2>
-              ),
-              h3: ({node, children, ...props}) => (
-                <h3 className="text-2xl font-bold mt-6 mb-3" {...props}>{children}</h3>
-              ),
-              h4: ({node, children, ...props}) => (
-                <h4 className="text-xl font-bold mt-6 mb-3" {...props}>{children}</h4>
-              ),
-              h5: ({node, children, ...props}) => (
-                <h5 className="text-lg font-bold mt-4 mb-2" {...props}>{children}</h5>
-              ),
-              h6: ({node, children, ...props}) => (
-                <h6 className="text-base font-bold mt-4 mb-2" {...props}>{children}</h6>
-              ),
-              p: ({node, children, ...props}) => (
-                <p className="my-4" {...props}>{children}</p>
-              ),
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4" {...props}>{children}</h1>
+            ),
+            h2: ({node, children, ...props}) => (
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mt-6 sm:mt-8 mb-3 sm:mb-4" {...props}>{children}</h2>
+            ),
+            h3: ({node, children, ...props}) => (
+              <h3 className="text-lg sm:text-xl md:text-2xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3" {...props}>{children}</h3>
+            ),
+            h4: ({node, children, ...props}) => (
+              <h4 className="text-base sm:text-lg md:text-xl font-bold mt-5 sm:mt-6 mb-2 sm:mb-3" {...props}>{children}</h4>
+            ),
+            h5: ({node, children, ...props}) => (
+              <h5 className="text-sm sm:text-base md:text-lg font-bold mt-4 mb-2" {...props}>{children}</h5>
+            ),
+            h6: ({node, children, ...props}) => (
+              <h6 className="text-xs sm:text-sm md:text-base font-bold mt-4 mb-2" {...props}>{children}</h6>
+            ),
+            p: ({node, children, ...props}) => (
+              <p className="my-3 sm:my-4 text-sm sm:text-base" {...props}>{children}</p>
+            ),
             img: ({node, src, alt, ...props}) => {
               if (!src) return null;
-              
-              // Clean up the URL if it contains width/height parameters
               const cleanSrc = src.replace(/\/width=\d+,height=\d+,/, '/');
-            
               
               return (
-                <div className="my-4">
-                  <Image
-                    src={cleanSrc}
-                    alt={alt || "Article image"}
-                    width={800}
-                    height={400}
-                    className="rounded-lg"
-                    loading="lazy"
-                  />
+                <div className="my-4 sm:my-6">
+                  <div className="relative w-full h-48 sm:h-64 md:h-[400px]">
+                    <Image
+                      src={cleanSrc}
+                      alt={alt || "Article image"}
+                      fill
+                      className="rounded-lg object-cover"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
               );
             },
             ul: ({children}) => (
-              <ul className="list-disc list-inside space-y-2 my-4">
+              <ul className="list-disc list-inside space-y-1 sm:space-y-2 my-3 sm:my-4 text-sm sm:text-base">
                 {children}
               </ul>
             ),
             ol: ({children}) => (
-              <ol className="list-inside list-decimal space-y-2 my-4">
+              <ol className="list-decimal list-inside space-y-1 sm:space-y-2 my-3 sm:my-4 text-sm sm:text-base">
                 {children}
               </ol>
             ),
             li: ({children}) => (
-              <li className="ml-4">
+              <li className="ml-2 sm:ml-4">
                 {children}
               </li>
             ),
-            code({ node, className, children, ...props }) {
+            code({node, className, children, ...props}) {
               const match = /language-(\w+)/.exec(className || "");
               return match ? (
-                <SyntaxHighlighter
-                  language={match[1]}
-                      // @ts-expect-error - style prop type mismatch with SyntaxHighlighter
-                  style={vscDarkPlus}
-                  PreTag="div"
-                  {...props}
-                >
-                  {String(children).replace(/\n$/, "")}
-                </SyntaxHighlighter>
+                <div className="my-4 sm:my-6 text-sm sm:text-base overflow-x-auto">
+                  <SyntaxHighlighter
+                    language={match[1]}
+                    style={vscDarkPlus}
+                    PreTag="div"
+                    {...props}
+                  >
+                    {String(children).replace(/\n$/, "")}
+                  </SyntaxHighlighter>
+                </div>
               ) : (
-                <code className="bg-gray-100 text-red-500 px-1 py-0.5 rounded font-mono text-sm" {...props}>
+                <code className="bg-gray-100 text-red-500 px-1 py-0.5 rounded font-mono text-xs sm:text-sm" {...props}>
                   {children}
                 </code>
               );
             },
-            a: ({href, children}) => (
-              <a 
-                href={href}
-                className="text-blue-500 hover:text-blue-700 underline font-medium"
-                style={{
-                  color: '#3b82f6',
-                  textDecoration: 'underline',
-                  fontWeight: 500
-                }}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {children}
-              </a>
-            ),
             table: ({children}) => (
-              <div className="overflow-x-auto my-8">
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  border: '2px solid #e5e7eb',
-                }}>
-                  {children}
-                </table>
+              <div className="overflow-x-auto my-4 sm:my-8 -mx-4 sm:mx-0">
+                <div className="min-w-full inline-block align-middle">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    {children}
+                  </table>
+                </div>
               </div>
-            ),
-            thead: ({children}) => (
-              <thead style={{ backgroundColor: '#f9fafb' }}>
-                {children}
-              </thead>
-            ),
-            tbody: ({children}) => (
-              <tbody style={{ backgroundColor: 'white' }}>
-                {children}
-              </tbody>
-            ),
-            tr: ({children}) => (
-              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                {children}
-              </tr>
-            ),
-            th: ({children}) => (
-              <th style={{
-                padding: '12px 16px',
-                textAlign: 'left',
-                fontWeight: '600',
-                borderRight: '1px solid #e5e7eb'
-              }}>
-                {children}
-              </th>
-            ),
-            td: ({children}) => (
-              <td style={{
-                padding: '12px 16px',
-                borderRight: '1px solid #e5e7eb'
-              }}>
-                {children}
-              </td>
             ),
             blockquote: ({children}) => {
               const isQuote = children && 
@@ -207,13 +154,13 @@ export function Article({ article }: ArticleProps) {
                 : children;
 
               return (
-                <div className="my-6">
-                  <blockquote className="relative overflow-hidden rounded-lg bg-emerald-50 p-6 border-l-4 border-emerald-500">
+                <div className="my-4 sm:my-6">
+                  <blockquote className="relative overflow-hidden rounded-lg bg-emerald-50 p-4 sm:p-6 border-l-4 border-emerald-500">
                     <div className="relative z-10">
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4">
                         <div className="flex-shrink-0 pt-1">
                           <svg 
-                            className="h-6 w-6 text-emerald-500" 
+                            className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" 
                             fill="none" 
                             viewBox="0 0 24 24" 
                             stroke="currentColor"
@@ -227,7 +174,7 @@ export function Article({ article }: ArticleProps) {
                           </svg>
                         </div>
                         <div className="flex-1">
-                          <p className="text-emerald-800 leading-relaxed">
+                          <p className="text-sm sm:text-base text-emerald-800 leading-relaxed">
                             {content}
                           </p>
                         </div>

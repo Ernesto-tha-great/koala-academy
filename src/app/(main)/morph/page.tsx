@@ -110,7 +110,7 @@ export default function MorphPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-emerald-50/20" ref={containerRef}>
       {/* Hero Section */}
-      <div className="relative h-screen flex items-center justify-center overflow-hidden">
+      <div className="relative h-[90vh] sm:h-screen flex items-center justify-center overflow-hidden">
         <motion.div 
           style={{ y, opacity }}
           className="absolute inset-0 bg-dot-pattern opacity-10"
@@ -119,7 +119,7 @@ export default function MorphPage() {
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-8xl font-bold text-center mb-8 bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-900"
+            className="text-4xl sm:text-6xl md:text-8xl font-bold text-center mb-4 sm:mb-8 bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-900"
           >
             Protocol Design
           </motion.h1>
@@ -127,13 +127,13 @@ export default function MorphPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl text-center text-emerald-700 max-w-3xl mx-auto mb-20"
+            className="text-lg sm:text-xl md:text-2xl text-center text-emerald-700 max-w-3xl mx-auto mb-12 sm:mb-20"
           >
             Explore the fundamental concepts powering Morph&apos;s next-generation Layer 2
           </motion.p>
 
-          {/* Animated Scroll Indicator */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-8 sm:bottom-12 left-1/2 -translate-x-1/2">
             <motion.div
               animate={{ 
                 y: [0, 10, 0],
@@ -147,15 +147,15 @@ export default function MorphPage() {
               className="relative"
             >
               <div className="absolute inset-0 bg-emerald-400/20 rounded-full blur-xl animate-pulse" />
-              <ArrowDown className="h-8 w-8 text-emerald-600 relative z-10" />
+              <ArrowDown className="h-6 w-6 sm:h-8 sm:w-8 text-emerald-600 relative z-10" />
             </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Spotlight Article */}
+      {/* Featured Article */}
       {featuredArticle && (
-        <div className="py-20 px-4">
+        <div className="py-12 sm:py-20 px-4">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -163,15 +163,15 @@ export default function MorphPage() {
               className="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100"
             >
               <Link href={`/blog/${featuredArticle.slug}`} className="block">
-                <div className="flex flex-col lg:flex-row gap-8 p-8">
-                  <div className="lg:w-1/2 space-y-6">
-                    <div className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
+                <div className="flex flex-col lg:flex-row gap-6 sm:gap-8 p-6 sm:p-8">
+                  <div className="lg:w-1/2 space-y-4 sm:space-y-6">
+                    <div className="inline-flex items-center px-3 sm:px-4 py-1 sm:py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
                       Featured Article
                     </div>
-                    <h2 className="text-4xl font-bold text-emerald-900 group-hover:text-emerald-700 transition-colors">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-emerald-900 group-hover:text-emerald-700 transition-colors">
                       {featuredArticle.title}
                     </h2>
-                    <p className="text-lg text-emerald-700/80">
+                    <p className="text-base sm:text-lg text-emerald-700/80">
                       {featuredArticle.excerpt}
                     </p>
                     <div className="flex items-center gap-4">
@@ -197,17 +197,17 @@ export default function MorphPage() {
         </div>
       )}
 
-      {/* Fundamental Concepts */}
-      <section className="py-20 px-4">
+      {/* Concepts Sections */}
+      <section className="py-12 sm:py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold mb-12 text-emerald-900"
+            className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12 text-emerald-900"
           >
             Fundamental Concepts
           </motion.h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {fundamentalConcepts.map((concept, index) => (
               <motion.div
                 key={concept.id}
@@ -245,17 +245,17 @@ export default function MorphPage() {
         </div>
       </section>
 
-      {/* Protocol Design */}
-      <section className="py-20 px-4">
+      {/* Protocol Design Section */}
+      <section className="py-12 sm:py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold mb-12 text-emerald-900"
+            className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12 text-emerald-900"
           >
             Protocol Design
           </motion.h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
             {protocolDesign.map((design, index) => (
               <motion.div
                 key={design.id}

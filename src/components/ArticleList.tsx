@@ -40,7 +40,7 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
   }
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-6 md:gap-8">
       {filteredArticles.map((article, index) => {
         const encodedSlug = encodeURIComponent(article.slug)
           .toLowerCase()
@@ -59,8 +59,8 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
               <div className="group relative bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <div className="flex gap-8 p-6">
-                  <div className="relative w-48 h-32 rounded-xl overflow-hidden flex-shrink-0">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 p-4 sm:p-6">
+                  <div className="relative w-full sm:w-48 h-48 sm:h-32 rounded-xl overflow-hidden">
                     <Image
                       src={article.headerImage || '/default-header.jpg'}
                       alt={article.title}
@@ -72,7 +72,7 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
 
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex flex-wrap items-center gap-3 mb-3">
                         <span className="px-3 py-1 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-full">
                           {article.level}
                         </span>

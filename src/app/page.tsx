@@ -24,25 +24,25 @@ export default function Home() {
             transition={{ duration: 0.8 }}
             className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
           >
-            <section className="py-24">
+            <section className="py-12 md:py-24">
               <Suspense fallback={<div>Loading article of the week...</div>}>
                 <ArticleOfTheWeek />
               </Suspense>
             </section>
 
             {/* Latest Articles Section */}
-            <section className="py-24">
+            <section className="py-12 md:py-24">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.6 }}
-                className="flex items-center justify-between mb-12"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 sm:mb-12 gap-4"
               >
-                <h2 className="text-4xl font-bold text-emerald-900 font-manrope">
+                <h2 className="text-3xl md:text-4xl font-bold text-emerald-900 font-manrope">
                   Latest Articles
                 </h2>
-                <div className="flex items-center gap-4">
+                <div className="w-full sm:w-auto">
                   <Suspense fallback={<div>Loading filters...</div>}>
                     <TagFilter />
                   </Suspense>
