@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useQuery } from "convex/react";
@@ -14,9 +15,10 @@ interface ArticleListProps {
 
 export function ArticleList({ selectedTag }: ArticleListProps) {
   const articles = useQuery(api.articles.list, { 
-    status: "published",
-    tag: selectedTag,
+    limit: 20,
   });
+
+  console.log("articles", articles);
 
   const filteredArticles = useMemo(() => {
     if (!articles) return [];

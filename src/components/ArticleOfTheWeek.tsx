@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 
 export default function ArticleOfTheWeek() {
   const articles = useQuery(api.articles.list, {
-    limit: 10,
+    limit: 50,
   });
   
   const featuredArticle = useMemo(() => {

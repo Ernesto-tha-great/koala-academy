@@ -11,9 +11,9 @@ export default function Home() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <div className="relative min-h-screen bg-white">
-        <div className="absolute inset-0 bg-dot-pattern opacity-[0.05]" />
+        <div className="absolute inset-0 bg-dot-pattern opacity-[0.05] pointer-events-none" />
         
-        <main className="relative w-full">
+        <main className="relative w-full z-10">
           <BlogHeader />
           
           {/* Featured Section */}
@@ -22,7 +22,7 @@ export default function Home() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.8 }}
-            className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+            className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
           >
             <section className="py-24">
               <Suspense fallback={<div>Loading article of the week...</div>}>

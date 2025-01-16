@@ -194,6 +194,50 @@ export function Article({ article }: ArticleProps) {
                 {children}
               </td>
             ),
+            blockquote: ({children}) => {
+              const isQuote = children && 
+                Array.isArray(children) &&
+                children[0]?.props?.children &&
+                Array.isArray(children[0].props.children) &&
+                typeof children[0].props.children[0] === 'string' &&
+                children[0].props.children[0].startsWith('> ');
+
+              const content = isQuote
+                ? children[0].props.children[0].substring(2)
+                : children;
+
+              return (
+                <div className="my-6">
+                  <blockquote className="relative overflow-hidden rounded-lg bg-emerald-50 p-6 border-l-4 border-emerald-500">
+                    <div className="relative z-10">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 pt-1">
+                          <svg 
+                            className="h-6 w-6 text-emerald-500" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+                            />
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-emerald-800 leading-relaxed">
+                            {content}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute inset-0 bg-emerald-50 opacity-50" />
+                  </blockquote>
+                </div>
+              );
+            },
           }}
         >
           {article.content}

@@ -48,8 +48,10 @@ const CATEGORIES = [
 
 export default function BlogPage() {
   const articles = useQuery(api.articles.list, {
-    limit: 10,
+    limit: 20,
   });
+
+  console.log("articles", articles);
   
   // Move state declarations to the top
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
@@ -57,7 +59,7 @@ export default function BlogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Then do the filtering - exclude both guides and morph content
+  // Filter non-guide articles
   const nonGuideArticles = useMemo(() => {
     if (!articles) return [];
     return articles.filter(article => 
@@ -67,17 +69,34 @@ export default function BlogPage() {
     );
   }, [articles]);
 
-  // Then apply level filtering
+  // Filter by selected level
   const filteredArticles = useMemo(() => {
     return nonGuideArticles.filter(article => 
       selectedLevel === "all" || article.level === selectedLevel
     );
   }, [nonGuideArticles, selectedLevel]);
 
-  // Separate featured and regular articles from non-guides
-  const featuredArticle = filteredArticles[0];
-  const trendingArticles = filteredArticles.slice(1, 4);
-  const regularArticles = filteredArticles.slice(4);
+  // Get trending articles (3 most read)
+  const trendingArticles = useMemo(() => {
+    return [...filteredArticles]
+      .sort((a, b) => (b.views || 0) - (a.views || 0))
+      .slice(0, 3);
+  }, [filteredArticles]);
+
+  // Get latest articles (sorted by date)
+  const latestArticles = useMemo(() => {
+    return [...filteredArticles]
+      .sort((a, b) => {
+        const dateA = new Date(a.publishedAt || a._creationTime);
+        const dateB = new Date(b.publishedAt || b._creationTime);
+        return dateB.getTime() - dateA.getTime();
+      });
+  }, [filteredArticles]);
+
+  // Featured article is the most recent one
+  const featuredArticle = latestArticles[0];
+  // Regular articles are all the latest articles except the featured one
+  const regularArticles = latestArticles.slice(1);
 
   // Get available levels from articles
   const availableLevels = useMemo(() => {

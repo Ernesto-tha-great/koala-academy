@@ -39,7 +39,7 @@ export function GuideCard({ guide }: GuideCardProps) {
   const levelStyle = levelColors[guide.level as keyof typeof levelColors];
 
   return (
-    <Link href={`/guides/${guide.slug}`} className="block w-full max-w-[400px] mx-auto">
+    <Link href={`/blog/${guide.slug}`} className="block w-full max-w-[400px] mx-auto">
       <motion.div 
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2 }}
