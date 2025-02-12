@@ -9,8 +9,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Command, CommandInput, CommandList, CommandGroup, } from "@/components/ui/command";
-
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandGroup,
+} from "@/components/ui/command";
 
 function Skeleton({ className }: { className?: string }) {
   return (
@@ -46,13 +50,19 @@ const CATEGORIES = [
   { name: "MEV", icon: "⚡" },
 ];
 
+const extractFirstImageUrl = (content: string): string | null => {
+  const imageRegex = /!\[.*?\]\((.*?)\)/;
+  const match = content.match(imageRegex);
+  return match ? match[1] : null;
+};
+
 export default function BlogPage() {
   const articles = useQuery(api.articles.list, {
     limit: 20,
   });
 
   console.log("articles", articles);
-  
+
   // Move state declarations to the top
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -62,17 +72,26 @@ export default function BlogPage() {
   // Filter non-guide articles
   const nonGuideArticles = useMemo(() => {
     if (!articles) return [];
-    return articles.filter(article => 
-      article.category !== "guide" && 
-      article.category !== "morph" && 
-      article.status === "published"
-    );
+    return articles
+      .filter(
+        (article) =>
+          article.category !== "guide" &&
+          article.category !== "morph" &&
+          article.status === "published"
+      )
+      .map((article) => ({
+        ...article,
+        displayImage:
+          article.headerImage ||
+          extractFirstImageUrl(article.content) ||
+          "/default-header.jpg",
+      }));
   }, [articles]);
 
   // Filter by selected level
   const filteredArticles = useMemo(() => {
-    return nonGuideArticles.filter(article => 
-      selectedLevel === "all" || article.level === selectedLevel
+    return nonGuideArticles.filter(
+      (article) => selectedLevel === "all" || article.level === selectedLevel
     );
   }, [nonGuideArticles, selectedLevel]);
 
@@ -85,12 +104,11 @@ export default function BlogPage() {
 
   // Get latest articles (sorted by date)
   const latestArticles = useMemo(() => {
-    return [...filteredArticles]
-      .sort((a, b) => {
-        const dateA = new Date(a.publishedAt || a._creationTime);
-        const dateB = new Date(b.publishedAt || b._creationTime);
-        return dateB.getTime() - dateA.getTime();
-      });
+    return [...filteredArticles].sort((a, b) => {
+      const dateA = new Date(a.publishedAt || a._creationTime);
+      const dateB = new Date(b.publishedAt || b._creationTime);
+      return dateB.getTime() - dateA.getTime();
+    });
   }, [filteredArticles]);
 
   // Featured article is the most recent one
@@ -102,7 +120,7 @@ export default function BlogPage() {
   const availableLevels = useMemo(() => {
     if (!articles) return new Set<string>();
     const levels = new Set<string>();
-    articles.forEach(article => {
+    articles.forEach((article) => {
       if (article.level) levels.add(article.level);
     });
     return levels;
@@ -110,9 +128,9 @@ export default function BlogPage() {
 
   // Add this handler
   const toggleCategory = (category: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(category) 
-        ? prev.filter(c => c !== category)
+    setSelectedCategories((prev) =>
+      prev.includes(category)
+        ? prev.filter((c) => c !== category)
         : [...prev, category]
     );
   };
@@ -171,7 +189,10 @@ export default function BlogPage() {
           <Skeleton className="h-7 sm:h-8 w-36 sm:w-48 mb-4 sm:mb-6" />
           <div className="grid gap-4 sm:gap-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-slate-50">
+              <div
+                key={i}
+                className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-slate-50"
+              >
                 <Skeleton className="w-full sm:w-48 h-48 sm:h-32 rounded-lg flex-shrink-0" />
                 <div className="flex-1">
                   <Skeleton className="h-5 sm:h-6 w-16 sm:w-20 mb-2" />
@@ -194,11 +215,11 @@ export default function BlogPage() {
     <div className="min-h-screen bg-white bg-dot-pattern">
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-b from-emerald-200 via-emerald-100 to-white pb-16 sm:pb-32">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.05 }}
           transition={{ duration: 1 }}
-          className="absolute inset-0 bg-grid-pattern" 
+          className="absolute inset-0 bg-grid-pattern"
         />
         <div className="container max-w-7xl mx-auto px-4">
           <motion.div
@@ -211,7 +232,8 @@ export default function BlogPage() {
                 Technical Articles
               </h1>
               <p className="text-lg sm:text-xl text-emerald-700 mb-6 sm:mb-8">
-                Deep dives into blockchain development, L2 scaling, and web3 architecture
+                Deep dives into blockchain development, L2 scaling, and web3
+                architecture
               </p>
 
               {/* Search Component */}
@@ -221,15 +243,19 @@ export default function BlogPage() {
                 transition={{ delay: 0.2 }}
                 className="w-full"
               >
-                <div className={cn(
-                  "relative bg-white/80 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-sm w-full cursor-pointer",
-                  "border border-emerald-100/50 transition-all duration-500",
-                  isSearchOpen ? "ring-2 ring-emerald-500 ring-opacity-50" : ""
-                )}>
+                <div
+                  className={cn(
+                    "relative bg-white/80 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-sm w-full cursor-pointer",
+                    "border border-emerald-100/50 transition-all duration-500",
+                    isSearchOpen
+                      ? "ring-2 ring-emerald-500 ring-opacity-50"
+                      : ""
+                  )}
+                >
                   <Command className="rounded-lg border-0 bg-transparent w-full [&_[cmdk-input-wrapper]]:block">
                     <div className="flex items-center px-4 w-full">
                       <Search className="w-4 h-4 text-emerald-500 mr-2 flex-shrink-0" />
-                      <CommandInput 
+                      <CommandInput
                         placeholder="Search articles..."
                         onFocus={() => setIsSearchOpen(true)}
                         value={searchQuery}
@@ -237,7 +263,7 @@ export default function BlogPage() {
                         className="py-6 w-full border-0 outline-none focus:ring-0 bg-transparent [&_input]:border-0 [&_input]:bg-transparent [&_input]:outline-none [&_input]:focus:ring-0 [&_input]:w-full [&_input]:p-0"
                       />
                       {searchQuery && (
-                        <X 
+                        <X
                           className="w-4 h-4 text-muted-foreground cursor-pointer hover:text-emerald-500 transition-colors flex-shrink-0"
                           onClick={handleClearSearch}
                         />
@@ -289,7 +315,7 @@ export default function BlogPage() {
               </motion.div>
 
               {/* Level Filter */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -302,15 +328,15 @@ export default function BlogPage() {
                   className="w-full"
                 >
                   <TabsList className="bg-transparent w-full flex justify-start gap-2 overflow-x-auto">
-                    <TabsTrigger 
+                    <TabsTrigger
                       value="all"
                       className="rounded-full px-4 py-2 text-sm transition-all duration-500 ease-in-out"
                     >
                       All Levels
                     </TabsTrigger>
-                    {Array.from(availableLevels).map(level => (
-                      <TabsTrigger 
-                        key={level} 
+                    {Array.from(availableLevels).map((level) => (
+                      <TabsTrigger
+                        key={level}
                         value={level}
                         className="rounded-full px-4 py-2 text-sm transition-all duration-500 ease-in-out"
                       >
@@ -336,7 +362,7 @@ export default function BlogPage() {
             <Link href={`/blog/${featuredArticle.slug}`}>
               <div className="group relative rounded-xl sm:rounded-2xl overflow-hidden mb-8 sm:mb-16 aspect-[3/4] sm:aspect-[2/1]">
                 <Image
-                  src={featuredArticle.headerImage || '/default-header.jpg'}
+                  src={featuredArticle.displayImage || "/default-header.jpg"}
                   alt={featuredArticle.title}
                   fill
                   className="object-cover transition-transform group-hover:scale-105"
@@ -387,14 +413,11 @@ export default function BlogPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 + index * 0.1 }}
               >
-                <Link 
-                  href={`/blog/${article.slug}`}
-                  className="group"
-                >
+                <Link href={`/blog/${article.slug}`} className="group">
                   <div className="rounded-xl overflow-hidden bg-muted/50 h-full">
                     <div className="relative aspect-[16/9]">
                       <Image
-                        src={article.headerImage || '/default-header.jpg'}
+                        src={article.displayImage || "/default-header.jpg"}
                         alt={article.title}
                         fill
                         className="object-cover"
@@ -430,7 +453,9 @@ export default function BlogPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
         >
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Latest Articles</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">
+            Latest Articles
+          </h2>
           <div className="grid gap-4 sm:gap-6">
             {regularArticles.map((article, index) => (
               <motion.div
@@ -439,14 +464,11 @@ export default function BlogPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 + index * 0.1 }}
               >
-                <Link 
-                  href={`/blog/${article.slug}`}
-                  className="group"
-                >
+                <Link href={`/blog/${article.slug}`} className="group">
                   <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
                     <div className="relative w-full sm:w-48 h-48 sm:h-32 rounded-lg overflow-hidden flex-shrink-0">
                       <Image
-                        src={article.headerImage || '/default-header.jpg'}
+                        src={article.displayImage || "/default-header.jpg"}
                         alt={article.title}
                         fill
                         className="object-cover"
@@ -484,7 +506,7 @@ export default function BlogPage() {
 
       {/* Click outside handler */}
       {isSearchOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-0"
           onClick={() => setIsSearchOpen(false)}
         />
