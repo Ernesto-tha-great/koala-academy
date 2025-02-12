@@ -9,12 +9,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 
+const extractFirstImageUrl = (content: string): string | null => {
+  const imageRegex = /!\[.*?\]\((.*?)\)/;
+  const match = content.match(imageRegex);
+  return match ? match[1] : null;
+};
+
 interface ArticleListProps {
   selectedTag?: string;
 }
 
 export function ArticleList({ selectedTag }: ArticleListProps) {
-  const articles = useQuery(api.articles.list, { 
+  const articles = useQuery(api.articles.list, {
     limit: 20,
   });
 
@@ -22,18 +28,30 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
 
   const filteredArticles = useMemo(() => {
     if (!articles) return [];
-    return articles.filter(article => 
-      article.category !== "guide" && 
-      article.category !== "morph" && 
-      article.status === "published"
-    );
+    return articles
+      .filter(
+        (article) =>
+          article.category !== "guide" &&
+          article.category !== "morph" &&
+          article.status === "published"
+      )
+      .map((article) => ({
+        ...article,
+        displayImage:
+          article.headerImage ||
+          extractFirstImageUrl(article.content) ||
+          "/default-header.jpg",
+      }));
   }, [articles]);
 
   if (!articles) {
     return (
       <div className="grid gap-8">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-48 bg-emerald-50 rounded-2xl animate-pulse" />
+          <div
+            key={i}
+            className="h-48 bg-emerald-50 rounded-2xl animate-pulse"
+          />
         ))}
       </div>
     );
@@ -44,9 +62,9 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
       {filteredArticles.map((article, index) => {
         const encodedSlug = encodeURIComponent(article.slug)
           .toLowerCase()
-          .replace(/%20/g, '-')
-          .replace(/[&]/g, 'and')
-          .replace(/[^a-z0-9-]/g, '');
+          .replace(/%20/g, "-")
+          .replace(/[&]/g, "and")
+          .replace(/[^a-z0-9-]/g, "");
 
         return (
           <motion.div
@@ -58,11 +76,11 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
             <Link href={`/blog/${encodedSlug}`}>
               <div className="group relative bg-white rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300">
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/0 to-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+
                 <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 p-4 sm:p-6">
                   <div className="relative w-full sm:w-48 h-48 sm:h-32 rounded-xl overflow-hidden">
                     <Image
-                      src={article.headerImage || '/default-header.jpg'}
+                      src={article.displayImage}
                       alt={article.title}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -81,11 +99,11 @@ export function ArticleList({ selectedTag }: ArticleListProps) {
                           {article.readingTime} min read
                         </span>
                       </div>
-                      
+
                       <h3 className="text-xl font-semibold text-emerald-900 mb-2 group-hover:text-emerald-600 transition-colors">
                         {article.title}
                       </h3>
-                      
+
                       <p className="text-emerald-600/80 line-clamp-2">
                         {article.excerpt}
                       </p>
