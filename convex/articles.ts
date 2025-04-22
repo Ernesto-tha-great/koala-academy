@@ -11,22 +11,34 @@ export const create = mutation({
     content: v.string(),
     headerImage: v.optional(v.string()),
     excerpt: v.string(),
-    type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
+    type: v.union(
+      v.literal("markdown"),
+      v.literal("external"),
+      v.literal("video")
+    ),
     status: v.union(v.literal("draft"), v.literal("published")),
     externalUrl: v.optional(v.string()),
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
-    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
-    level: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
+    category: v.union(
+      v.literal("article"),
+      v.literal("guide"),
+      v.literal("morph")
+    ),
+    level: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
 
     const slug = args.title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
 
     const article = await ctx.db.insert("articles", {
       ...args,
@@ -40,7 +52,7 @@ export const create = mutation({
       category: args.category,
       level: args.level,
       seoTitle: args.seoTitle || args.title,
-      seoDescription: args.seoDescription || args.excerpt
+      seoDescription: args.seoDescription || args.excerpt,
     });
 
     return article;
@@ -54,10 +66,22 @@ export const update = mutation({
     content: v.optional(v.string()),
     headerImage: v.optional(v.string()),
     excerpt: v.string(),
-    type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
+    type: v.union(
+      v.literal("markdown"),
+      v.literal("external"),
+      v.literal("video")
+    ),
     status: v.optional(v.string()),
-    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
-    level: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
+    category: v.union(
+      v.literal("article"),
+      v.literal("guide"),
+      v.literal("morph")
+    ),
+    level: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
     externalUrl: v.optional(v.string()),
     tags: v.array(v.string()),
     seoTitle: v.optional(v.string()),
@@ -78,14 +102,14 @@ export const update = mutation({
     );
 
     // Log for debugging
-    console.log('Updating article:', id);
-    console.log('Updates:', cleanUpdates);
+    console.log("Updating article:", id);
+    console.log("Updates:", cleanUpdates);
 
     await ctx.db.patch(id, cleanUpdates);
-    
+
     const updated = await ctx.db.get(id);
     if (!updated) {
-      throw new Error('Failed to update article');
+      throw new Error("Failed to update article");
     }
 
     return updated;
@@ -119,36 +143,34 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     let query = ctx.db.query("articles");
-    
+
     if (args.status) {
-      query = query.filter(q => q.eq(q.field("status"), args.status));
+      query = query.filter((q) => q.eq(q.field("status"), args.status));
     } else {
       // If no status specified, only show published articles
-      query = query.filter(q => q.eq(q.field("status"), "published"));
+      query = query.filter((q) => q.eq(q.field("status"), "published"));
     }
-    
+
     // if (args.tag) {
     //   query = query.filter(q => q.contains(q.field("tags"), args.tag));
     // }
 
-    const articles = await query
-      .order("desc")
-      .take(args.limit ?? 10);
+    const articles = await query.order("desc").take(args.limit ?? 10);
 
     // Get authors info
-    const authorIds = [...new Set(articles.map(article => article.authorId))];
+    const authorIds = [...new Set(articles.map((article) => article.authorId))];
     const users = await Promise.all(
-      authorIds.map(id =>
+      authorIds.map((id) =>
         ctx.db
           .query("users")
-          .filter(q => q.eq(q.field("userId"), id))
+          .filter((q) => q.eq(q.field("userId"), id))
           .first()
       )
     );
 
-    const userMap = new Map(users.map(user => [user?.userId, user]));
+    const userMap = new Map(users.map((user) => [user?.userId, user]));
 
-    return articles.map(article => ({
+    return articles.map((article) => ({
       ...article,
       author: userMap.get(article.authorId),
     }));
@@ -160,7 +182,7 @@ export const getBySlug = query({
   handler: async (ctx, args) => {
     const article = await ctx.db
       .query("articles")
-      .filter(q => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("slug"), args.slug),
           q.eq(q.field("status"), "published")
@@ -172,7 +194,7 @@ export const getBySlug = query({
 
     const author = await ctx.db
       .query("users")
-      .filter(q => q.eq(q.field("userId"), article.authorId))
+      .filter((q) => q.eq(q.field("userId"), article.authorId))
       .first();
 
     return { ...article, author };
@@ -184,11 +206,10 @@ export const getById = query({
   handler: async (ctx, { id }) => {
     // First try to find the article
     const article = await ctx.db.get(id);
-    
+
     if (!article) return null;
-    
-    
-    return { ...article};
+
+    return { ...article };
   },
 });
 
@@ -200,7 +221,7 @@ export const getRelated = query({
   handler: async (ctx, args) => {
     const article = await ctx.db
       .query("articles")
-      .filter(q => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("_id"), args.articleId),
           q.eq(q.field("status"), "published")
@@ -211,7 +232,7 @@ export const getRelated = query({
 
     const filteredArticles = await ctx.db
       .query("articles")
-      .filter(q => 
+      .filter((q) =>
         q.and(
           q.neq(q.field("_id"), args.articleId),
           q.eq(q.field("status"), "published")
@@ -220,8 +241,8 @@ export const getRelated = query({
       .collect();
 
     // Find articles with 2+ tags in common
-    const related = filteredArticles.filter(relatedArticle => {
-      const commonTags = relatedArticle.tags.filter(tag => 
+    const related = filteredArticles.filter((relatedArticle) => {
+      const commonTags = relatedArticle.tags.filter((tag) =>
         article.tags.includes(tag)
       );
       return commonTags.length >= 2;
@@ -232,159 +253,168 @@ export const getRelated = query({
   },
 });
 
-
-
-
 export const trending = query({
-    handler: async (ctx) => {
-      const articles = await ctx.db
-        .query("articles")
-        .filter(q => q.eq(q.field("status"), "published"))
-        .collect();
-  
-      // Sort articles by views in descending order
-      articles.sort((a, b) => b.views - a.views);
-  
-      // Take the top 5 articles
-      return articles.slice(0, 5);
-    },
-  });
+  handler: async (ctx) => {
+    const articles = await ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("status"), "published"))
+      .collect();
 
+    // Sort articles by views in descending order
+    articles.sort((a, b) => b.views - a.views);
 
-  export const recordView = mutation({
-    args: { articleId: v.id("articles") },
-    handler: async (ctx, args) => {
-      const identity = await ctx.auth.getUserIdentity();
-      const timestamp = Date.now();
-      const date = formatISO(timestamp, { representation: 'date' });
-  
-      // Single query to check for recent views from this user
-      const recentView = await ctx.db
-        .query("articleViews")
-        .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-        .filter((q) => {
-          const userCheck = identity?.subject 
-            ? q.eq(q.field("userId"), identity.subject)
-            : q.eq(q.field("userId"), undefined);
-          return q.and(
-            userCheck,
-            q.gt(q.field("viewedAt"), timestamp - 300000)
-          );
-        })
-        .first();
-  
-      if (recentView) {
-        return; // Skip if recent view exists
-      }
-  
-      // Record new view and increment article counter in one transaction
-      await ctx.db.insert("articleViews", {
-        articleId: args.articleId,
-        userId: identity?.subject,
-        viewedAt: timestamp,
-        date,
-      });
-  
-      // Use atomic increment for article views
-      const article = await ctx.db.get(args.articleId);
-      await ctx.db.patch(args.articleId, {
-        views: (article?.views ?? 0) + 1
-      });
-    },
-  });
-  // Get top articles by views for a specific date
-  export const getTopArticles = query({
-    args: {
-      date: v.optional(v.string()), // YYYY-MM-DD format
-      limit: v.optional(v.number()),
-    },
-    handler: async (ctx, args) => {
-      const date = args.date || formatISO(new Date(), { representation: 'date' });
-      const limit = args.limit || 5;
-  
-      // Get view counts for the date
-      const views = await ctx.db
-        .query("articleViews")
-        .withIndex("by_date", (q) => q.eq("date", date))
-        .collect();
-  
-      // Count views per article
-      const viewCounts = views.reduce((acc, view) => {
+    // Take the top 5 articles
+    return articles.slice(0, 5);
+  },
+});
+
+export const recordView = mutation({
+  args: { articleId: v.id("articles") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    const timestamp = Date.now();
+    const date = formatISO(timestamp, { representation: "date" });
+
+    // Single query to check for recent views from this user
+    const recentView = await ctx.db
+      .query("articleViews")
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .filter((q) => {
+        const userCheck = identity?.subject
+          ? q.eq(q.field("userId"), identity.subject)
+          : q.eq(q.field("userId"), undefined);
+        return q.and(userCheck, q.gt(q.field("viewedAt"), timestamp - 300000));
+      })
+      .first();
+
+    if (recentView) {
+      return; // Skip if recent view exists
+    }
+
+    // Record new view and increment article counter in one transaction
+    await ctx.db.insert("articleViews", {
+      articleId: args.articleId,
+      userId: identity?.subject,
+      viewedAt: timestamp,
+      date,
+    });
+
+    // Use atomic increment for article views
+    const article = await ctx.db.get(args.articleId);
+    await ctx.db.patch(args.articleId, {
+      views: (article?.views ?? 0) + 1,
+    });
+  },
+});
+
+// Get top articles by views for a specific date
+export const getTopArticles = query({
+  args: {
+    date: v.optional(v.string()), // YYYY-MM-DD format
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const date = args.date || formatISO(new Date(), { representation: "date" });
+    const limit = args.limit || 5;
+
+    // Get view counts for the date
+    const views = await ctx.db
+      .query("articleViews")
+      .withIndex("by_date", (q) => q.eq("date", date))
+      .collect();
+
+    // Count views per article
+    const viewCounts = views.reduce(
+      (acc, view) => {
         acc[view.articleId] = (acc[view.articleId] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>);
-  
-      // Get article details and sort by views
-      const articles = await Promise.all(
-        Object.entries(viewCounts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, limit)
-          .map(async ([articleId]) => {
-            const article = await ctx.db.get(articleId as Id<"articles">);
-            return {
-              ...article,
-              dailyViews: viewCounts[articleId],
-            };
-          })
-      );
-  
-      return articles.filter(Boolean);
-    },
-  });
-  
-  // Get view stats for a specific article
-  export const getArticleStats = query({
-    args: { articleId: v.id("articles") },
-    handler: async (ctx, args) => {
-      const views = await ctx.db
-        .query("articleViews")
-        .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
-        .collect();
-  
-      // Group views by date
-      const dailyViews = views.reduce((acc, view) => {
+      },
+      {} as Record<string, number>
+    );
+
+    // Get article details and sort by views
+    const articles = await Promise.all(
+      Object.entries(viewCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, limit)
+        .map(async ([articleId]) => {
+          const article = await ctx.db.get(articleId as Id<"articles">);
+          return {
+            ...article,
+            dailyViews: viewCounts[articleId],
+          };
+        })
+    );
+
+    return articles.filter(Boolean);
+  },
+});
+
+// Get view stats for a specific article
+export const getArticleStats = query({
+  args: { articleId: v.id("articles") },
+  handler: async (ctx, args) => {
+    const views = await ctx.db
+      .query("articleViews")
+      .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
+      .collect();
+
+    // Group views by date
+    const dailyViews = views.reduce(
+      (acc, view) => {
         acc[view.date] = (acc[view.date] || 0) + 1;
         return acc;
-      }, {} as Record<string, number>);
-  
-      return {
-        totalViews: views.length,
-        dailyViews,
-      };
-    },
-  });
+      },
+      {} as Record<string, number>
+    );
 
-  export const search = query({
-    args: {
-      query: v.string(),
-      type: v.optional(v.union(v.literal("article"), v.literal("guide"), v.literal("morph"))),
-      limit: v.optional(v.number()),
-    },
-    handler: async (ctx, args) => {
-      const searchQuery = args.query.toLowerCase();
-      const limit = args.limit ?? 10;
+    return {
+      totalViews: views.length,
+      dailyViews,
+    };
+  },
+});
 
-      let query = ctx.db
-        .query("articles")
-        .filter(q => q.eq(q.field("status"), "published"));
+export const search = query({
+  args: {
+    query: v.string(),
+    type: v.optional(
+      v.union(v.literal("article"), v.literal("guide"), v.literal("morph"))
+    ),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const searchQuery = args.query.toLowerCase();
+    const limit = args.limit ?? 10;
 
-      // Add type filter if specified
-      if (args.type) {
-        query = query.filter((q) => 
-          q.eq(q.field("category"), args.type)
-        );
-      }
+    let query = ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("status"), "published"));
 
-      const results = await query.collect();
+    // Add type filter if specified
+    if (args.type) {
+      query = query.filter((q) => q.eq(q.field("category"), args.type));
+    }
 
-      // Filter by search terms
-      const filtered = results.filter(article => 
+    const results = await query.collect();
+
+    // Filter by search terms
+    const filtered = results.filter(
+      (article) =>
         article.title.toLowerCase().includes(searchQuery) ||
         article.excerpt.toLowerCase().includes(searchQuery) ||
         article.content.toLowerCase().includes(searchQuery) ||
-        article.tags.some(tag => tag.toLowerCase().includes(searchQuery))
-      );
+        article.tags.some((tag) => tag.toLowerCase().includes(searchQuery))
+    );
 
-      return filtered.slice(0, limit);
-    },
-  });
+    return filtered.slice(0, limit);
+  },
+});
+
+export const listRaw = query({
+  handler: async (ctx) => {
+    const articles = await ctx.db.query("articles").collect();
+
+    return articles;
+  },
+});

@@ -11,15 +11,23 @@ import { cn } from "@/lib/utils";
 export default function GuidesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-  const articles = useQuery(api.articles.list, { status: "published" });
-  
-  const guides = articles?.filter(article => article.category === "guide");
-  const filteredGuides = guides?.filter(guide => {
+  const articles = useQuery(api.articles.list, {
+    status: "published",
+    limit: 100,
+  });
+
+  const guides = articles?.filter((article) => article.category === "guide");
+  const filteredGuides = guides?.filter((guide) => {
     if (!selectedCategory) return true;
-    return guide.tags?.some(tag => 
-      tag.toLowerCase().replace(/\s+/g, '-') === selectedCategory.toLowerCase()
+    return guide.tags?.some(
+      (tag) =>
+        tag.toLowerCase().replace(/\s+/g, "-") ===
+        selectedCategory.toLowerCase()
     );
   });
+
+  console.log("Total guides:", guides?.length);
+  console.log("Filtered guides:", filteredGuides?.length);
 
   return (
     <div className="min-h-screen bg-white bg-dot-pattern">
@@ -36,7 +44,8 @@ export default function GuidesPage() {
                 Developer Guides
               </h1>
               <p className="text-lg sm:text-xl text-emerald-700">
-                Comprehensive guides and tutorials for building, deploying, and scaling on Morph L2
+                Comprehensive guides and tutorials for building, deploying, and
+                scaling on Morph L2
               </p>
             </motion.div>
           </div>
@@ -44,7 +53,7 @@ export default function GuidesPage() {
       </div>
 
       <div className="container max-w-7xl mx-auto px-4 -mt-12 sm:-mt-24">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -54,9 +63,11 @@ export default function GuidesPage() {
             {guideCategories.map((category) => (
               <motion.button
                 key={category.slug}
-                onClick={() => setSelectedCategory(
-                  selectedCategory === category.slug ? null : category.slug
-                )}
+                onClick={() =>
+                  setSelectedCategory(
+                    selectedCategory === category.slug ? null : category.slug
+                  )
+                }
                 onHoverStart={() => setHoveredCategory(category.slug)}
                 onHoverEnd={() => setHoveredCategory(null)}
                 className={cn(
@@ -67,18 +78,22 @@ export default function GuidesPage() {
                     : "bg-gradient-to-r from-gray-50 to-white hover:from-emerald-50/50 hover:to-white text-emerald-900"
                 )}
               >
-                <category.icon className={cn(
-                  "h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300",
-                  selectedCategory === category.slug
-                    ? "text-white"
-                    : "text-emerald-500 group-hover:text-emerald-600"
-                )} />
-                <span className={cn(
-                  "font-medium transition-colors duration-300 whitespace-nowrap",
-                  selectedCategory === category.slug
-                    ? "text-white"
-                    : "text-emerald-900"
-                )}>
+                <category.icon
+                  className={cn(
+                    "h-4 w-4 sm:h-5 sm:w-5 transition-colors duration-300",
+                    selectedCategory === category.slug
+                      ? "text-white"
+                      : "text-emerald-500 group-hover:text-emerald-600"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "font-medium transition-colors duration-300 whitespace-nowrap",
+                    selectedCategory === category.slug
+                      ? "text-white"
+                      : "text-emerald-900"
+                  )}
+                >
                   {category.name}
                 </span>
                 <AnimatePresence>
@@ -104,19 +119,25 @@ export default function GuidesPage() {
           className="pb-12 sm:pb-20"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {filteredGuides?.map((guide, index) => (
-              <motion.div
-                key={guide._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex justify-center"
-              >
-                <div className="w-full sm:w-[400px]">
-                  <GuideCard guide={guide} />
-                </div>
-              </motion.div>
-            ))}
+            {filteredGuides?.length === 0 ? (
+              <p className="text-gray-500 col-span-full text-center py-12">
+                No guides found for the selected category.
+              </p>
+            ) : (
+              filteredGuides?.map((guide, index) => (
+                <motion.div
+                  key={guide._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex justify-center"
+                >
+                  <div className="w-full sm:w-[400px]">
+                    <GuideCard guide={guide} />
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
         </motion.div>
       </div>
