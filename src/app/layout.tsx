@@ -6,6 +6,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { MainNav } from "../components/MainNav";
+import { Footer } from "../components/Footer";
 import { ConvexClientProvider } from "@/components/providers/convex-provider";
 
 const manrope = Manrope({
@@ -33,11 +34,13 @@ export default function RootLayout({
       <body className={`${manrope.variable} ${geistMono.variable} antialiased`}>
         <ClerkProvider signUpForceRedirectUrl={"/"}>
           <ConvexClientProvider>
-            <MainNav />
-            {children}
+            <div className="min-h-screen flex flex-col">
+              <MainNav />
+              <main className="flex-1 pb-12">{children}</main>
+              <Footer />
+            </div>
 
             <Toaster />
-            {/* <Footer /> */}
           </ConvexClientProvider>
         </ClerkProvider>
         <Analytics />

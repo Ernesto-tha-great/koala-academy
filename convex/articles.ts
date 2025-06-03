@@ -5,6 +5,12 @@ import { ConvexError } from "convex/values";
 import { formatISO } from "date-fns";
 import { Id } from "./_generated/dataModel";
 
+const extractFirstImageUrl = (content: string): string | null => {
+  const imageRegex = /!\[.*?\]\((.*?)\)/;
+  const match = content.match(imageRegex);
+  return match ? match[1] : null;
+};
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -697,6 +703,48 @@ export const getUserDrafts = query({
         userId: user.userId,
         role: user.role,
       },
+    }));
+  },
+});
+
+export const listForHomepage = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const articles = await ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("status"), "published"))
+      .order("desc")
+      .take(args.limit ?? 6);
+
+    const authorIds = [...new Set(articles.map((article) => article.authorId))];
+    const users = await Promise.all(
+      authorIds.map((id) =>
+        ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("userId"), id))
+          .first()
+      )
+    );
+
+    const userMap = new Map(users.map((user) => [user?.userId, user]));
+
+    return articles.map((article) => ({
+      _id: article._id,
+      _creationTime: article._creationTime,
+      title: article.title,
+      excerpt: article.excerpt,
+      slug: article.slug,
+      headerImage: article.headerImage,
+      firstContentImage: extractFirstImageUrl(article.content),
+      category: article.category,
+      level: article.level,
+      tags: article.tags,
+      publishedAt: article.publishedAt,
+      readingTime: article.readingTime,
+      views: article.views,
+      author: userMap.get(article.authorId),
     }));
   },
 });
