@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 import { FileText, Eye, Edit, Calendar, Clock } from "lucide-react";
 import { SignInButton } from "@clerk/nextjs";
+import { Doc } from "../../../../convex/_generated/dataModel";
 
 export default function MyArticlesPage() {
   const { isSignedIn, isLoaded } = useUser();
@@ -120,7 +121,7 @@ export default function MyArticlesPage() {
     }
   };
 
-  const ArticleCard = ({ article }: { article: any }) => (
+  const ArticleCard = ({ article }: { article: Doc<"articles"> }) => (
     <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between">

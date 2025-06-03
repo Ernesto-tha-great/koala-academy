@@ -29,7 +29,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@clerk/nextjs";
 import ContentPreview from "@/components/ContentPreview";
 import { Id } from "../../convex/_generated/dataModel";
 
@@ -74,7 +73,6 @@ type FormData = z.infer<typeof formSchema>;
 export function ArticleForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const { user, isLoaded } = useUser();
   const createArticle = useMutation(api.articles.create);
 
   const [previewOpen, setPreviewOpen] = useState(false);
