@@ -9,6 +9,7 @@ import {
   Users,
   Settings,
   PenTool,
+  ClipboardList,
 } from "lucide-react";
 
 const navigation = [
@@ -21,6 +22,11 @@ const navigation = [
     name: "Articles",
     href: "/admin/articles",
     icon: FileText,
+  },
+  {
+    name: "Submissions",
+    href: "/admin/submissions",
+    icon: ClipboardList,
   },
   {
     name: "Editor",
@@ -51,13 +57,12 @@ const navigation = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  // const users = useQuery(api.auth);
 
   return (
     <div className="hidden lg:flex h-screen w-64 flex-col fixed left-0 top-0 border-r bg-background">
       <div className="p-6">
         <Link href="/">
-        <h1 className="text-2xl font-bold">Koala Academy</h1>
+          <h1 className="text-2xl font-bold">Koala Academy</h1>
         </Link>
       </div>
       <nav className="flex-1 px-4 space-y-1">
