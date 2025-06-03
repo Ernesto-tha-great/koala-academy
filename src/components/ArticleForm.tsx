@@ -4,8 +4,9 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,15 +26,18 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, CheckCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@clerk/nextjs";
+import ContentPreview from "@/components/ContentPreview";
+import { Id } from "../../convex/_generated/dataModel";
 
 const formSchema = z
   .object({
-    type: z.enum(["markdown", "external"]),
+    type: z.enum(["markdown", "external", "video"]),
     title: z.string().min(1, "Title is required"),
-    headerImage: z.string().url().optional().or(z.literal("")),
+    headerImage: z.string().optional(),
     excerpt: z
       .string()
       .min(1, "Excerpt is required")
@@ -42,14 +46,7 @@ const formSchema = z
     category: z.enum(["article", "guide", "morph"]),
     level: z.enum(["beginner", "intermediate", "advanced"]),
     externalUrl: z.string().url().optional().or(z.literal("")),
-    tags: z.string().transform((str) =>
-      str
-        ? str
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : []
-    ),
+    tags: z.array(z.string()).default([]),
     seoTitle: z.string().optional(),
     seoDescription: z
       .string()
@@ -62,10 +59,13 @@ const formSchema = z
       if (data.type === "external" && !data.externalUrl) {
         return false;
       }
+      if (data.type === "markdown" && !data.content) {
+        return false;
+      }
       return true;
     },
     {
-      message: "External URL is required for external articles",
+      message: "Required fields missing for selected article type",
     }
   );
 
@@ -73,13 +73,23 @@ type FormData = z.infer<typeof formSchema>;
 
 export function ArticleForm() {
   const { toast } = useToast();
-  const [submitted, setSubmitted] = useState(false);
-  const submitArticle = useMutation(api.articles.create);
+  const router = useRouter();
+  const { user, isLoaded } = useUser();
+  const createArticle = useMutation(api.articles.create);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewId, setPreviewId] = useState<string | undefined>();
+
+  const previewArticle = useQuery(
+    api.articles.getById,
+    previewId ? { id: previewId as Id<"articles"> } : "skip"
+  );
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       type: "markdown",
+      status: "draft",
       category: "article",
       level: "beginner",
       title: "",
@@ -90,80 +100,92 @@ export function ArticleForm() {
       seoTitle: "",
       seoDescription: "",
       externalUrl: "",
-      status: "draft",
     },
     mode: "onChange",
   });
 
-  const articleType = form.watch("type");
   const isSubmitting = form.formState.isSubmitting;
+  const articleType = form.watch("type");
+  const status = form.watch("status");
 
-  const onSubmit = async (data: FormData) => {
+  const onPreview = async (data: FormData) => {
     try {
-      await submitArticle({
+      const articleId = await createArticle({
         ...data,
-        tags: Array.isArray(data.tags) ? data.tags : [],
+        status: "draft",
+        content: data.content || "",
+        tags: data.tags,
         externalUrl: data.type === "external" ? data.externalUrl : undefined,
-        headerImage: data.headerImage || undefined,
-        seoTitle: data.seoTitle || undefined,
-        seoDescription: data.seoDescription || undefined,
       });
 
-      setSubmitted(true);
+      setPreviewId(articleId);
+      setPreviewOpen(true);
+
       toast({
-        title: "Article submitted!",
-        description:
-          data.status === "published"
-            ? "Your article has been published!"
-            : "Your article has been submitted for review. We'll email you when it's published.",
+        title: "Success",
+        description: "Draft saved successfully",
       });
     } catch (error) {
-      console.error("Error submitting article:", error);
+      console.error("Failed to save draft:", error);
       toast({
         title: "Error",
-        description: "Failed to submit article. Please try again.",
+        description: "Failed to save draft. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  if (submitted) {
-    return (
-      <div className="text-center space-y-6 py-12">
-        <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-green-700">
-            Article Submitted!
-          </h2>
-          <p className="text-gray-600 max-w-lg mx-auto">
-            Thank you for your submission. Your article has been submitted for
-            review.
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setSubmitted(false);
-            form.reset();
-          }}
-          variant="outline"
-        >
-          Submit Another Article
-        </Button>
-      </div>
-    );
-  }
+  const onSubmit = async (data: FormData) => {
+    try {
+      await createArticle({
+        ...data,
+        content: data.content || "",
+        tags: data.tags,
+        externalUrl: data.type === "external" ? data.externalUrl : undefined,
+      });
+
+      toast({
+        title: "Success",
+        description:
+          data.status === "draft"
+            ? "Article saved as draft successfully"
+            : "Article submitted for review successfully",
+      });
+
+      if (data.status === "published") {
+        router.push("/my-articles");
+      }
+    } catch (error) {
+      console.error("Failed to create article:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save article. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFormSubmit = async (data: FormData) => {
+    if (status === "draft") {
+      await onPreview(data);
+    } else {
+      await onSubmit(data);
+    }
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Article Settings */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <form
+        onSubmit={form.handleSubmit(handleFormSubmit)}
+        className="space-y-6"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Article Type</FormLabel>
+                <FormLabel>Article Type *</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -174,10 +196,13 @@ export function ArticleForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="markdown">Markdown</SelectItem>
+                    <SelectItem value="markdown">Markdown Article</SelectItem>
                     <SelectItem value="external">External Link</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormDescription>
+                  Choose the type of content you want to submit
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -188,7 +213,7 @@ export function ArticleForm() {
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Category *</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -204,39 +229,41 @@ export function ArticleForm() {
                     <SelectItem value="morph">Morph Docs</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="level"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Level</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormDescription>
+                  Choose where this content will appear
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
 
-        {/* Article Content */}
+        <FormField
+          control={form.control}
+          name="level"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Difficulty Level *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select difficulty level" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="beginner">Beginner</SelectItem>
+                  <SelectItem value="intermediate">Intermediate</SelectItem>
+                  <SelectItem value="advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Help readers understand the target audience
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="title"
@@ -245,10 +272,13 @@ export function ArticleForm() {
               <FormLabel>Article Title *</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Enter an engaging title for your article"
+                  placeholder="Enter a compelling title for your article"
                   {...field}
                 />
               </FormControl>
+              <FormDescription>
+                Make it clear, descriptive, and engaging
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -350,7 +380,19 @@ export function ArticleForm() {
               <FormControl>
                 <Input
                   placeholder="react, typescript, nextjs, web development"
-                  {...field}
+                  value={
+                    Array.isArray(field.value)
+                      ? field.value.join(", ")
+                      : field.value
+                  }
+                  onChange={(e) =>
+                    field.onChange(
+                      e.target.value
+                        .split(",")
+                        .map((tag) => tag.trim())
+                        .filter(Boolean)
+                    )
+                  }
                 />
               </FormControl>
               <FormDescription>
@@ -441,23 +483,50 @@ export function ArticleForm() {
           </AlertDescription>
         </Alert>
 
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full"
-          size="lg"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting Article...
-            </>
-          ) : form.watch("status") === "draft" ? (
-            "Save Draft"
-          ) : (
-            "Submit Article for Review"
-          )}
-        </Button>
+        <div className="flex gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => form.handleSubmit(onPreview)()}
+            disabled={
+              isSubmitting ||
+              !form.getValues("title") ||
+              !form.getValues("excerpt") ||
+              !form.getValues("content")
+            }
+            className="flex-1"
+            size="lg"
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Preview
+          </Button>
+
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1"
+            size="lg"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {status === "draft" ? "Saving Draft..." : "Submitting..."}
+              </>
+            ) : status === "draft" ? (
+              "Save as Draft"
+            ) : (
+              "Submit for Review"
+            )}
+          </Button>
+        </div>
+
+        {previewArticle && previewOpen && (
+          <ContentPreview
+            article={{ ...previewArticle, author: null }}
+            open={previewOpen}
+            onOpenChange={setPreviewOpen}
+          />
+        )}
       </form>
     </Form>
   );

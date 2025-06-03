@@ -626,3 +626,77 @@ export const listRaw = query({
     return articles;
   },
 });
+
+export const getUserArticles = query({
+  args: {
+    status: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("published"),
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+        v.literal("needs_revision")
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+
+    let query = ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("authorId"), user.userId));
+
+    if (
+      args.status === "pending" ||
+      args.status === "approved" ||
+      args.status === "rejected" ||
+      args.status === "needs_revision"
+    ) {
+      query = query.filter((q) =>
+        q.eq(q.field("submissionStatus"), args.status)
+      );
+    } else if (args.status) {
+      query = query.filter((q) => q.eq(q.field("status"), args.status));
+    }
+
+    const articles = await query.order("desc").collect();
+
+    return articles.map((article) => ({
+      ...article,
+      author: {
+        name: user.name,
+        email: user.email,
+        userId: user.userId,
+        role: user.role,
+      },
+    }));
+  },
+});
+
+export const getUserDrafts = query({
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+
+    const drafts = await ctx.db
+      .query("articles")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("authorId"), user.userId),
+          q.eq(q.field("status"), "draft")
+        )
+      )
+      .order("desc")
+      .collect();
+
+    return drafts.map((draft) => ({
+      ...draft,
+      author: {
+        name: user.name,
+        email: user.email,
+        userId: user.userId,
+        role: user.role,
+      },
+    }));
+  },
+});

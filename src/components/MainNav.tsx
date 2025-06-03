@@ -6,7 +6,7 @@ import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { Menu, PenSquare, X } from "lucide-react";
+import { Menu, PenSquare, X, FileText } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -22,22 +22,22 @@ export function MainNav() {
 
   const NavLinks = () => (
     <>
-      <Link 
-        href="/blog" 
+      <Link
+        href="/blog"
         className="text-sm font-medium font-parkinsans hover:text-primary"
         onClick={() => setIsMenuOpen(false)}
       >
         Articles
       </Link>
-      <Link 
-        href="/guides" 
+      <Link
+        href="/guides"
         className="text-sm font-medium font-parkinsans hover:text-primary"
         onClick={() => setIsMenuOpen(false)}
       >
         Guides
       </Link>
-      <Link 
-        href="/morph" 
+      <Link
+        href="/morph"
         className="text-sm font-medium font-parkinsans hover:text-primary"
         onClick={() => setIsMenuOpen(false)}
       >
@@ -52,7 +52,12 @@ export function MainNav() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center gap-2">
-            <Image src="/morphLogo.svg" alt="bookkoala" width={18} height={18} />
+            <Image
+              src="/morphLogo.svg"
+              alt="bookkoala"
+              width={18}
+              height={18}
+            />
             <Link href="/" className="text-xl font-semibold font-manrope">
               Koala Academy
             </Link>
@@ -66,21 +71,25 @@ export function MainNav() {
               <div className="flex items-center gap-4">
                 {clerkUser ? (
                   <>
+                    <Link
+                      href="/my-articles"
+                      className="text-sm font-medium hover:text-primary"
+                    >
+                      My Articles
+                    </Link>
+                    <Link href="/submit">
+                      <Button size="sm" variant="ghost" className="gap-2">
+                        <PenSquare className="h-4 w-4" />
+                        Write
+                      </Button>
+                    </Link>
                     {isAdmin && (
-                      <>
-                        <Link href="/admin/articles/new">
-                          <Button size="sm" variant="ghost" className="gap-2">
-                            <PenSquare className="h-4 w-4" />
-                            Write
-                          </Button>
-                        </Link>
-                        <Link 
-                          href="/admin"
-                          className="text-sm font-medium hover:text-primary"
-                        >
-                          Dashboard
-                        </Link>
-                      </>
+                      <Link
+                        href="/admin"
+                        className="text-sm font-medium hover:text-primary"
+                      >
+                        Admin
+                      </Link>
                     )}
                     <UserButton afterSignOutUrl="/" />
                   </>
@@ -113,31 +122,44 @@ export function MainNav() {
         <div
           className={cn(
             "md:hidden fixed inset-x-0 top-16 bg-white border-b z-50 transition-all duration-300 ease-in-out",
-            isMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full pointer-events-none"
+            isMenuOpen
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-full pointer-events-none"
           )}
         >
           <div className="flex flex-col gap-4 p-4">
             <NavLinks />
-            
+
             {isLoaded && (
               <div className="flex flex-col gap-4 pt-4 border-t">
                 {clerkUser ? (
                   <>
+                    <Link
+                      href="/my-articles"
+                      className="text-sm font-medium hover:text-primary px-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FileText className="h-4 w-4 mr-2 inline" />
+                      My Articles
+                    </Link>
+                    <Link href="/submit">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-full gap-2 justify-start"
+                      >
+                        <PenSquare className="h-4 w-4" />
+                        Write
+                      </Button>
+                    </Link>
                     {isAdmin && (
-                      <>
-                        <Link href="/admin/articles/new">
-                          <Button size="sm" variant="ghost" className="w-full gap-2 justify-start">
-                            <PenSquare className="h-4 w-4" />
-                            Write
-                          </Button>
-                        </Link>
-                        <Link 
-                          href="/admin"
-                          className="text-sm font-medium hover:text-primary px-2"
-                        >
-                          Dashboard
-                        </Link>
-                      </>
+                      <Link
+                        href="/admin"
+                        className="text-sm font-medium hover:text-primary px-2"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
                     )}
                     <div className="px-2">
                       <UserButton afterSignOutUrl="/" />
@@ -145,7 +167,9 @@ export function MainNav() {
                   </>
                 ) : (
                   <SignInButton mode="modal">
-                    <Button size="sm" className="w-full">Sign In</Button>
+                    <Button size="sm" className="w-full">
+                      Sign In
+                    </Button>
                   </SignInButton>
                 )}
               </div>
