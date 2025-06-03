@@ -5,6 +5,12 @@ import { ConvexError } from "convex/values";
 import { formatISO } from "date-fns";
 import { Id } from "./_generated/dataModel";
 
+const extractFirstImageUrl = (content: string): string | null => {
+  const imageRegex = /!\[.*?\]\((.*?)\)/;
+  const match = content.match(imageRegex);
+  return match ? match[1] : null;
+};
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -40,15 +46,26 @@ export const create = mutation({
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
+    let submissionStatus: "pending" | "approved" = "pending";
+    let status: "draft" | "published" = "draft";
+
+    if (user.role === "admin") {
+      submissionStatus = "approved";
+      status = args.status;
+    }
+
     const article = await ctx.db.insert("articles", {
       ...args,
       slug,
       authorId: user.userId,
-      publishedAt: args.status === "published" ? Date.now() : undefined,
+      submissionStatus,
+      status,
+      publishedAt: status === "published" ? Date.now() : undefined,
       views: 0,
       likes: 0,
       readingTime: Math.ceil(args.content.split(/\s+/).length / 200),
       lastModified: Date.now(),
+      submittedAt: Date.now(),
       category: args.category,
       level: args.level,
       seoTitle: args.seoTitle || args.title,
@@ -56,6 +73,223 @@ export const create = mutation({
     });
 
     return article;
+  },
+});
+
+export const getPendingSubmissions = query({
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const articles = await ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("submissionStatus"), "pending"))
+      .order("desc")
+      .collect();
+
+    const authorIds = articles
+      .filter((article) => article.authorId)
+      .map((article) => article.authorId!);
+
+    const users = await Promise.all(
+      authorIds.map((id) =>
+        ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("userId"), id))
+          .first()
+      )
+    );
+
+    const userMap = new Map(users.map((user) => [user?.userId, user]));
+
+    return articles.map((article) => ({
+      ...article,
+      author: article.authorId ? userMap.get(article.authorId) : null,
+    }));
+  },
+});
+
+export const getAllSubmissions = query({
+  args: {
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+        v.literal("needs_revision")
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+
+    let query = ctx.db.query("articles");
+
+    if (args.status) {
+      query = query.filter((q) =>
+        q.eq(q.field("submissionStatus"), args.status)
+      );
+    } else {
+      query = query.filter((q) =>
+        q.neq(q.field("submissionStatus"), undefined)
+      );
+    }
+
+    const articles = await query.order("desc").collect();
+
+    const authorIds = articles
+      .filter((article) => article.authorId)
+      .map((article) => article.authorId!);
+
+    const users = await Promise.all(
+      authorIds.map((id) =>
+        ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("userId"), id))
+          .first()
+      )
+    );
+
+    const userMap = new Map(users.map((user) => [user?.userId, user]));
+
+    const filteredArticles = articles.filter((article) => {
+      const author = article.authorId ? userMap.get(article.authorId) : null;
+      return !(
+        article.submissionStatus === "approved" && author?.role === "admin"
+      );
+    });
+
+    return filteredArticles.map((article) => ({
+      ...article,
+      author: article.authorId ? userMap.get(article.authorId) : null,
+    }));
+  },
+});
+
+export const reviewSubmission = mutation({
+  args: {
+    id: v.id("articles"),
+    action: v.union(
+      v.literal("approve"),
+      v.literal("reject"),
+      v.literal("request_revision")
+    ),
+    reviewNotes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    if (!admin) return;
+
+    const article = await ctx.db.get(args.id);
+    if (!article) {
+      throw new ConvexError("Article not found");
+    }
+
+    let submissionStatus: "approved" | "rejected" | "needs_revision";
+    let status: "draft" | "published" | "archived" = article.status;
+    let publishedAt = article.publishedAt;
+
+    switch (args.action) {
+      case "approve":
+        submissionStatus = "approved";
+        status = "published";
+        publishedAt = Date.now();
+        break;
+      case "reject":
+        submissionStatus = "rejected";
+        status = "archived";
+        break;
+      case "request_revision":
+        submissionStatus = "needs_revision";
+        status = "draft";
+        break;
+    }
+
+    await ctx.db.patch(args.id, {
+      submissionStatus,
+      status,
+      publishedAt,
+      reviewedBy: admin.userId,
+      reviewedAt: Date.now(),
+      reviewNotes: args.reviewNotes,
+      lastModified: Date.now(),
+    });
+
+    return await ctx.db.get(args.id);
+  },
+});
+
+export const editSubmission = mutation({
+  args: {
+    id: v.id("articles"),
+    title: v.optional(v.string()),
+    content: v.optional(v.string()),
+    headerImage: v.optional(v.string()),
+    excerpt: v.optional(v.string()),
+    type: v.optional(
+      v.union(v.literal("markdown"), v.literal("external"), v.literal("video"))
+    ),
+    category: v.optional(
+      v.union(v.literal("article"), v.literal("guide"), v.literal("morph"))
+    ),
+    level: v.optional(
+      v.union(
+        v.literal("beginner"),
+        v.literal("intermediate"),
+        v.literal("advanced")
+      )
+    ),
+    externalUrl: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+    const user = await requireUser(ctx);
+
+    const { id, ...updates } = args;
+
+    const existing = await ctx.db.get(id);
+    if (!existing) {
+      throw new Error(`Article with ID ${id} not found`);
+    }
+
+    if (!admin && existing.authorId !== user.id) {
+      return new ConvexError("You cannot edit this submission");
+    }
+
+    const cleanUpdates: Record<string, any> = {};
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    });
+
+    if (typeof cleanUpdates.title === "string") {
+      cleanUpdates.slug = cleanUpdates.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+    }
+
+    if (typeof cleanUpdates.content === "string") {
+      cleanUpdates.readingTime = Math.ceil(
+        cleanUpdates.content.split(/\s+/).length / 200
+      );
+    }
+
+    cleanUpdates.lastModified = Date.now();
+
+    await ctx.db.patch(id, cleanUpdates);
+
+    const updated = await ctx.db.get(id);
+    if (!updated) {
+      throw new Error("Failed to update article");
+    }
+
+    return updated;
   },
 });
 
@@ -88,22 +322,21 @@ export const update = mutation({
     seoDescription: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
     const { id, ...updates } = args;
 
-    // Check if document exists
     const existing = await ctx.db.get(id);
     if (!existing) {
       throw new Error(`Article with ID ${id} not found`);
     }
 
-    // Remove undefined values
+    if (user.role !== "admin" && existing.authorId !== user.userId) {
+      throw new ConvexError("Not authorized to edit this article");
+    }
+
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, value]) => value !== undefined)
     );
-
-    // Log for debugging
-    console.log("Updating article:", id);
-    console.log("Updates:", cleanUpdates);
 
     await ctx.db.patch(id, cleanUpdates);
 
@@ -126,7 +359,6 @@ export const remove = mutation({
       throw new ConvexError("Article not found");
     }
 
-    // Only allow admins or the original author to delete
     if (user.role !== "admin" && article.authorId !== user.userId) {
       throw new ConvexError("Not authorized to delete this article");
     }
@@ -147,7 +379,6 @@ export const list = query({
     if (args.status) {
       query = query.filter((q) => q.eq(q.field("status"), args.status));
     } else {
-      // If no status specified, only show published articles
       query = query.filter((q) => q.eq(q.field("status"), "published"));
     }
 
@@ -157,7 +388,6 @@ export const list = query({
 
     const articles = await query.order("desc").take(args.limit ?? 10);
 
-    // Get authors info
     const authorIds = [...new Set(articles.map((article) => article.authorId))];
     const users = await Promise.all(
       authorIds.map((id) =>
@@ -204,7 +434,6 @@ export const getBySlug = query({
 export const getById = query({
   args: { id: v.id("articles") },
   handler: async (ctx, { id }) => {
-    // First try to find the article
     const article = await ctx.db.get(id);
 
     if (!article) return null;
@@ -240,7 +469,6 @@ export const getRelated = query({
       )
       .collect();
 
-    // Find articles with 2+ tags in common
     const related = filteredArticles.filter((relatedArticle) => {
       const commonTags = relatedArticle.tags.filter((tag) =>
         article.tags.includes(tag)
@@ -248,7 +476,6 @@ export const getRelated = query({
       return commonTags.length >= 2;
     });
 
-    // Return limited results if limit was provided
     return args.limit ? related.slice(0, args.limit) : related;
   },
 });
@@ -260,10 +487,8 @@ export const trending = query({
       .filter((q) => q.eq(q.field("status"), "published"))
       .collect();
 
-    // Sort articles by views in descending order
     articles.sort((a, b) => b.views - a.views);
 
-    // Take the top 5 articles
     return articles.slice(0, 5);
   },
 });
@@ -275,7 +500,6 @@ export const recordView = mutation({
     const timestamp = Date.now();
     const date = formatISO(timestamp, { representation: "date" });
 
-    // Single query to check for recent views from this user
     const recentView = await ctx.db
       .query("articleViews")
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
@@ -291,7 +515,6 @@ export const recordView = mutation({
       return; // Skip if recent view exists
     }
 
-    // Record new view and increment article counter in one transaction
     await ctx.db.insert("articleViews", {
       articleId: args.articleId,
       userId: identity?.subject,
@@ -299,7 +522,6 @@ export const recordView = mutation({
       date,
     });
 
-    // Use atomic increment for article views
     const article = await ctx.db.get(args.articleId);
     await ctx.db.patch(args.articleId, {
       views: (article?.views ?? 0) + 1,
@@ -307,7 +529,6 @@ export const recordView = mutation({
   },
 });
 
-// Get top articles by views for a specific date
 export const getTopArticles = query({
   args: {
     date: v.optional(v.string()), // YYYY-MM-DD format
@@ -317,13 +538,11 @@ export const getTopArticles = query({
     const date = args.date || formatISO(new Date(), { representation: "date" });
     const limit = args.limit || 5;
 
-    // Get view counts for the date
     const views = await ctx.db
       .query("articleViews")
       .withIndex("by_date", (q) => q.eq("date", date))
       .collect();
 
-    // Count views per article
     const viewCounts = views.reduce(
       (acc, view) => {
         acc[view.articleId] = (acc[view.articleId] || 0) + 1;
@@ -332,7 +551,6 @@ export const getTopArticles = query({
       {} as Record<string, number>
     );
 
-    // Get article details and sort by views
     const articles = await Promise.all(
       Object.entries(viewCounts)
         .sort(([, a], [, b]) => b - a)
@@ -350,7 +568,6 @@ export const getTopArticles = query({
   },
 });
 
-// Get view stats for a specific article
 export const getArticleStats = query({
   args: { articleId: v.id("articles") },
   handler: async (ctx, args) => {
@@ -359,7 +576,6 @@ export const getArticleStats = query({
       .withIndex("by_article", (q) => q.eq("articleId", args.articleId))
       .collect();
 
-    // Group views by date
     const dailyViews = views.reduce(
       (acc, view) => {
         acc[view.date] = (acc[view.date] || 0) + 1;
@@ -391,14 +607,12 @@ export const search = query({
       .query("articles")
       .filter((q) => q.eq(q.field("status"), "published"));
 
-    // Add type filter if specified
     if (args.type) {
       query = query.filter((q) => q.eq(q.field("category"), args.type));
     }
 
     const results = await query.collect();
 
-    // Filter by search terms
     const filtered = results.filter(
       (article) =>
         article.title.toLowerCase().includes(searchQuery) ||
@@ -416,5 +630,121 @@ export const listRaw = query({
     const articles = await ctx.db.query("articles").collect();
 
     return articles;
+  },
+});
+
+export const getUserArticles = query({
+  args: {
+    status: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("published"),
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+        v.literal("needs_revision")
+      )
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireUser(ctx);
+
+    let query = ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("authorId"), user.userId));
+
+    if (
+      args.status === "pending" ||
+      args.status === "approved" ||
+      args.status === "rejected" ||
+      args.status === "needs_revision"
+    ) {
+      query = query.filter((q) =>
+        q.eq(q.field("submissionStatus"), args.status)
+      );
+    } else if (args.status) {
+      query = query.filter((q) => q.eq(q.field("status"), args.status));
+    }
+
+    const articles = await query.order("desc").collect();
+
+    return articles.map((article) => ({
+      ...article,
+      author: {
+        name: user.name,
+        email: user.email,
+        userId: user.userId,
+        role: user.role,
+      },
+    }));
+  },
+});
+
+export const getUserDrafts = query({
+  handler: async (ctx) => {
+    const user = await requireUser(ctx);
+
+    const drafts = await ctx.db
+      .query("articles")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("authorId"), user.userId),
+          q.eq(q.field("status"), "draft")
+        )
+      )
+      .order("desc")
+      .collect();
+
+    return drafts.map((draft) => ({
+      ...draft,
+      author: {
+        name: user.name,
+        email: user.email,
+        userId: user.userId,
+        role: user.role,
+      },
+    }));
+  },
+});
+
+export const listForHomepage = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const articles = await ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("status"), "published"))
+      .order("desc")
+      .take(args.limit ?? 6);
+
+    const authorIds = [...new Set(articles.map((article) => article.authorId))];
+    const users = await Promise.all(
+      authorIds.map((id) =>
+        ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("userId"), id))
+          .first()
+      )
+    );
+
+    const userMap = new Map(users.map((user) => [user?.userId, user]));
+
+    return articles.map((article) => ({
+      _id: article._id,
+      _creationTime: article._creationTime,
+      title: article.title,
+      excerpt: article.excerpt,
+      slug: article.slug,
+      headerImage: article.headerImage,
+      firstContentImage: extractFirstImageUrl(article.content),
+      category: article.category,
+      level: article.level,
+      tags: article.tags,
+      publishedAt: article.publishedAt,
+      readingTime: article.readingTime,
+      views: article.views,
+      author: userMap.get(article.authorId),
+    }));
   },
 });

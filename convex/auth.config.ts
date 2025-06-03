@@ -1,9 +1,8 @@
-
-export default ({
+export default {
   providers: [
     {
-      domain: "https://civil-thrush-49.clerk.accounts.dev",
+      domain: "https://clerk.koala-academy.dev",
       applicationID: "convex",
     },
   ],
-});
+};

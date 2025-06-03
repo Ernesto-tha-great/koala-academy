@@ -15,6 +15,7 @@ import {
   CommandList,
   CommandGroup,
 } from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
 
 function Skeleton({ className }: { className?: string }) {
   return (
@@ -40,7 +41,6 @@ function Skeleton({ className }: { className?: string }) {
   );
 }
 
-// Add these categories
 const CATEGORIES = [
   { name: "Oracles", icon: "🔮" },
   { name: "Subgraphs", icon: "📊" },
@@ -50,59 +50,50 @@ const CATEGORIES = [
   { name: "MEV", icon: "⚡" },
 ];
 
-const extractFirstImageUrl = (content: string): string | null => {
-  const imageRegex = /!\[.*?\]\((.*?)\)/;
-  const match = content.match(imageRegex);
-  return match ? match[1] : null;
-};
-
 export default function BlogPage() {
-  const articles = useQuery(api.articles.list, {
-    limit: 20,
+  const [displayLimit, setDisplayLimit] = useState(12);
+  const articlesPerBatch = 24;
+
+  const articles = useQuery(api.articles.listForHomepage, {
+    limit: Math.max(displayLimit + 12, articlesPerBatch),
   });
 
   console.log("articles", articles);
 
-  // Move state declarations to the top
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  // Filter non-guide articles
   const nonGuideArticles = useMemo(() => {
     if (!articles) return [];
     return articles
       .filter(
         (article) =>
-          article.category !== "guide" &&
-          article.category !== "morph" &&
-          article.status === "published"
+          article.category !== "guide" && article.category !== "morph"
       )
+      .slice(0, displayLimit)
       .map((article) => ({
         ...article,
         displayImage:
           article.headerImage ||
-          extractFirstImageUrl(article.content) ||
+          article.firstContentImage ||
           "/default-header.jpg",
       }));
-  }, [articles]);
+  }, [articles, displayLimit]);
 
-  // Filter by selected level
   const filteredArticles = useMemo(() => {
     return nonGuideArticles.filter(
       (article) => selectedLevel === "all" || article.level === selectedLevel
     );
   }, [nonGuideArticles, selectedLevel]);
 
-  // Get trending articles (3 most read)
   const trendingArticles = useMemo(() => {
     return [...filteredArticles]
       .sort((a, b) => (b.views || 0) - (a.views || 0))
       .slice(0, 3);
   }, [filteredArticles]);
 
-  // Get latest articles (sorted by date)
   const latestArticles = useMemo(() => {
     return [...filteredArticles].sort((a, b) => {
       const dateA = new Date(a.publishedAt || a._creationTime);
@@ -111,12 +102,10 @@ export default function BlogPage() {
     });
   }, [filteredArticles]);
 
-  // Featured article is the most recent one
   const featuredArticle = latestArticles[0];
-  // Regular articles are all the latest articles except the featured one
+
   const regularArticles = latestArticles.slice(1);
 
-  // Get available levels from articles
   const availableLevels = useMemo(() => {
     if (!articles) return new Set<string>();
     const levels = new Set<string>();
@@ -126,7 +115,6 @@ export default function BlogPage() {
     return levels;
   }, [articles]);
 
-  // Add this handler
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
       prev.includes(category)
@@ -135,18 +123,15 @@ export default function BlogPage() {
     );
   };
 
-  // Modify the clear search handler
   const handleClearSearch = (e: React.MouseEvent) => {
     e.stopPropagation();
     setSearchQuery("");
-    // Optionally, also clear selected categories
     setSelectedCategories([]);
   };
 
   if (!articles) {
     return (
       <div className="container mx-auto px-4 py-8 sm:py-12">
-        {/* Hero Section Skeleton */}
         <div className="mb-8 sm:mb-16">
           <Skeleton className="h-8 sm:h-12 w-2/3 mb-4" />
           <Skeleton className="h-6 sm:h-8 w-1/2" />
@@ -502,9 +487,25 @@ export default function BlogPage() {
             ))}
           </div>
         </motion.div>
+
+        {articles && articles.length > displayLimit && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="text-center mt-12"
+          >
+            <Button
+              variant="outline"
+              onClick={() => setDisplayLimit((prev) => prev + 12)}
+              className="bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            >
+              Load More Articles
+            </Button>
+          </motion.div>
+        )}
       </div>
 
-      {/* Click outside handler */}
       {isSearchOpen && (
         <div
           className="fixed inset-0 z-0"

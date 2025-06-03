@@ -9,13 +9,39 @@ export default defineSchema({
     headerImage: v.optional(v.string()),
     content: v.string(),
     excerpt: v.string(), // For preview/SEO
-    type: v.union(v.literal("markdown"), v.literal("external"), v.literal("video")),
-    status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
-    category: v.union(v.literal("article"), v.literal("guide"), v.literal("morph")),
-    level: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
+    type: v.union(
+      v.literal("markdown"),
+      v.literal("external"),
+      v.literal("video")
+    ),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived")
+    ),
+    submissionStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("approved"),
+        v.literal("rejected"),
+        v.literal("needs_revision")
+      )
+    ),
+    category: v.union(
+      v.literal("article"),
+      v.literal("guide"),
+      v.literal("morph")
+    ),
+    level: v.union(
+      v.literal("beginner"),
+      v.literal("intermediate"),
+      v.literal("advanced")
+    ),
     externalUrl: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
-    authorId: v.string(),
+    authorId: v.optional(v.string()),
+    guestAuthorName: v.optional(v.string()),
+    guestAuthorEmail: v.optional(v.string()),
     publishedAt: v.optional(v.number()),
     tags: v.array(v.string()),
     likes: v.number(),
@@ -24,14 +50,19 @@ export default defineSchema({
     seoDescription: v.optional(v.string()),
     seoTitle: v.optional(v.string()),
     lastModified: v.number(),
+    reviewedBy: v.optional(v.string()),
+    reviewedAt: v.optional(v.number()),
+    reviewNotes: v.optional(v.string()),
+    submittedAt: v.optional(v.number()),
   })
     .index("by_slug", ["slug"])
     .index("by_author", ["authorId"])
     .index("by_status_and_date", ["status", "publishedAt"])
+    .index("by_submission_status", ["submissionStatus", "submittedAt"])
     .index("by_tags", ["tags"])
     .searchIndex("search", {
       searchField: "title",
-      filterFields: ["status"]
+      filterFields: ["status", "submissionStatus"],
     }),
 
   comments: defineTable({
@@ -40,7 +71,11 @@ export default defineSchema({
     authorId: v.string(),
     authorName: v.string(),
     parentCommentId: v.optional(v.id("comments")),
-    status: v.union(v.literal("visible"), v.literal("hidden"), v.literal("deleted")),
+    status: v.union(
+      v.literal("visible"),
+      v.literal("hidden"),
+      v.literal("deleted")
+    ),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
     deletedAt: v.optional(v.number()),
@@ -79,7 +114,7 @@ export default defineSchema({
     bio: v.optional(v.string()),
     lastLogin: v.optional(v.number()),
     createdAt: v.optional(v.number()),
-    updatedAt: v.optional(v.number())
+    updatedAt: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_role", ["role"])
