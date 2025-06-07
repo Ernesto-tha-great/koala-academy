@@ -70,7 +70,6 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const updateArticle = useMutation(api.articles.update);
-  const { isSignedIn, isLoaded } = useUser();
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<FormData | null>(null);
@@ -107,7 +106,8 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
     try {
       new URL(string);
       return true;
-    } catch (_) {
+    } catch (err) {
+      console.log(err);
       return false;
     }
   }

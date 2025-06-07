@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -32,7 +33,6 @@ import { api } from "../../convex/_generated/api";
 import ContentPreview from "./ContentPreview";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@clerk/nextjs";
-import { Id } from "../../convex/_generated/dataModel";
 
 const formSchema = z
   .object({
@@ -580,7 +580,8 @@ function isValidUrl(string: string): boolean {
   try {
     new URL(string);
     return true;
-  } catch (_) {
+  } catch (err) {
+    console.log(err);
     return false;
   }
 }
