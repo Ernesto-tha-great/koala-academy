@@ -36,7 +36,7 @@ import { Id } from "../../convex/_generated/dataModel";
 
 const formSchema = z
   .object({
-    type: z.enum(["markdown", "external", "video"]),
+    type: z.enum(["markdown"]),
     title: z.string().min(1, "Title is required").max(200),
     headerImage: z.string().optional(),
     excerpt: z.string().min(1, "Excerpt is required").max(500),
@@ -44,23 +44,19 @@ const formSchema = z
     status: z.enum(["draft", "published"]),
     category: z.enum(["article", "guide", "morph"]),
     level: z.enum(["beginner", "intermediate", "advanced"]),
-    externalUrl: z.string().url().optional().or(z.literal("")),
     tags: z.array(z.string()).min(1, "At least one tag is required"),
     seoTitle: z.string().optional(),
     seoDescription: z.string().optional(),
   })
   .refine(
     (data) => {
-      if (data.type === "external" && !data.externalUrl) {
-        return false;
-      }
       if (data.type === "markdown" && !data.content) {
         return false;
       }
       return true;
     },
     {
-      message: "Required fields missing for selected article type",
+      message: "Content is required for markdown articles",
     }
   );
 
@@ -163,7 +159,6 @@ export function ArticleForm() {
       tags: [],
       seoTitle: "",
       seoDescription: "",
-      externalUrl: "",
     },
     mode: "onChange",
   });
@@ -193,19 +188,7 @@ export function ArticleForm() {
     );
   }
 
-  function isValidUrl(string: string): boolean {
-    if (!string || string.trim() === "") return false;
-    try {
-      new URL(string);
-      return true;
-    } catch (err) {
-      console.log(err);
-      return false;
-    }
-  }
-
   const isSubmitting = form.formState.isSubmitting;
-  const articleType = form.watch("type");
   const status = form.watch("status");
 
   const onPreview = async (data: FormData) => {
@@ -220,19 +203,10 @@ export function ArticleForm() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      if (!isSignedIn) {
-        throw new Error("Please sign in to submit articles");
-      }
-
-      if (!isLoaded) {
-        throw new Error("Authentication is still loading, please try again");
-      }
-
       await createArticle({
         ...data,
         content: data.content || "",
         tags: data.tags,
-        externalUrl: data.type === "external" ? data.externalUrl : undefined,
       });
 
       toast({
@@ -243,13 +217,11 @@ export function ArticleForm() {
             : "Article submitted for review successfully",
       });
 
-      if (data.status === "published") {
-        router.push("/my-articles");
-      }
+      router.push("/my-articles");
     } catch (error) {
       console.error("Failed to create article:", error);
 
-      let errorMessage = "Failed to save article. Please try again.";
+      let errorMessage = "Failed to create article. Please try again.";
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === "object" && error && "message" in error) {
@@ -270,7 +242,7 @@ export function ArticleForm() {
 
   const previewArticle = previewData
     ? {
-        _id: "preview" as Id<"articles">,
+        _id: "preview" as any,
         _creationTime: Date.now(),
         title: previewData.title,
         content: previewData.content,
@@ -289,19 +261,14 @@ export function ArticleForm() {
         readingTime: Math.ceil(
           (previewData.content?.split(/\s+/).length || 0) / 200
         ),
-        views: 0,
-        likes: 0,
-        publishedAt: undefined,
-        lastModified: Date.now(),
-        submittedAt: undefined,
-        authorId: undefined,
         seoTitle: previewData.seoTitle,
         seoDescription: previewData.seoDescription,
-        externalUrl:
-          previewData.externalUrl && isValidUrl(previewData.externalUrl)
-            ? previewData.externalUrl
-            : undefined,
         author: null,
+        authorId: "preview",
+        publishedAt: undefined,
+        views: 0,
+        likes: 0,
+        lastModified: Date.now(),
       }
     : null;
 
@@ -329,8 +296,6 @@ export function ArticleForm() {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="markdown">Markdown Article</SelectItem>
-                    <SelectItem value="external">External Link</SelectItem>
-                    <SelectItem value="video">Video Content</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -444,48 +409,21 @@ export function ArticleForm() {
           )}
         />
 
-        {articleType === "external" && (
-          <FormField
-            control={form.control}
-            name="externalUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>External URL</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://example.com/article" {...field} />
-                </FormControl>
-                <FormDescription>Link to the external article</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
         <FormField
           control={form.control}
           name="content"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>
-                {articleType === "external"
-                  ? "Additional Content (Optional)"
-                  : "Content"}
-              </FormLabel>
+              <FormLabel>Content</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder={
-                    articleType === "external"
-                      ? "Any additional context or summary (optional)"
-                      : "Write your article content in Markdown format"
-                  }
+                  placeholder="Write your article content in Markdown format"
                   className="min-h-[400px]"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                {articleType === "external"
-                  ? "Optional additional content to supplement the external link"
-                  : "Use Markdown formatting for headings, links, code blocks, etc."}
+                Use Markdown formatting for headings, links, code blocks, etc.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -635,4 +573,14 @@ export function ArticleForm() {
       </form>
     </Form>
   );
+}
+
+function isValidUrl(string: string): boolean {
+  if (!string || string.trim() === "") return false;
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
 }

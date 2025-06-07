@@ -36,7 +36,7 @@ import { Doc } from "../../convex/_generated/dataModel";
 
 const formSchema = z
   .object({
-    type: z.enum(["markdown", "external", "video"]),
+    type: z.enum(["markdown"]),
     title: z.string().min(1, "Title is required").max(200),
     headerImage: z.string().optional(),
     excerpt: z.string().min(1, "Excerpt is required").max(500),
@@ -44,23 +44,19 @@ const formSchema = z
     status: z.enum(["draft", "published"]),
     category: z.enum(["article", "guide", "morph"]),
     level: z.enum(["beginner", "intermediate", "advanced"]),
-    externalUrl: z.string().url().optional().or(z.literal("")),
     tags: z.array(z.string()).min(1, "At least one tag is required"),
     seoTitle: z.string().optional(),
     seoDescription: z.string().optional(),
   })
   .refine(
     (data) => {
-      if (data.type === "external" && !data.externalUrl) {
-        return false;
-      }
       if (data.type === "markdown" && !data.content) {
         return false;
       }
       return true;
     },
     {
-      message: "Required fields missing for selected article type",
+      message: "Content is required for markdown articles",
     }
   );
 
@@ -79,25 +75,17 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<FormData | null>(null);
 
-  function isValidUrl(string: string): boolean {
-    if (!string || string.trim() === "") return false;
-    try {
-      new URL(string);
-      return true;
-    } catch (err) {
-      console.log(err);
-      return false;
-    }
-  }
+  // Convert existing article type to markdown if it's external/video (for compatibility)
+  const compatibleType =
+    article.type === "external" || article.type === "video"
+      ? "markdown"
+      : article.type;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      type: article.type,
-      status:
-        article.status === "published" && article.submissionStatus === "pending"
-          ? "published"
-          : "draft",
+      type: compatibleType,
+      status: article.status === "published" ? "published" : "draft",
       category: article.category,
       level: article.level,
       title: article.title,
@@ -107,14 +95,22 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
       tags: article.tags || [],
       seoTitle: article.seoTitle || "",
       seoDescription: article.seoDescription || "",
-      externalUrl: article.externalUrl || "",
     },
     mode: "onChange",
   });
 
   const isSubmitting = form.formState.isSubmitting;
-  const articleType = form.watch("type");
   const status = form.watch("status");
+
+  function isValidUrl(string: string): boolean {
+    if (!string || string.trim() === "") return false;
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   const onPreview = async (data: FormData) => {
     setPreviewData(data);
@@ -122,34 +118,35 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
 
     toast({
       title: "Preview Ready",
-      description: "Review your article before submitting",
+      description: "Review your changes before saving",
     });
   };
 
   const onSubmit = async (data: FormData) => {
     try {
-      if (!isSignedIn) {
-        throw new Error("Please sign in to update articles");
-      }
-
-      if (!isLoaded) {
-        throw new Error("Authentication is still loading, please try again");
-      }
-
-      await updateArticle({
+      const updateData = {
         id: article._id,
-        ...data,
-        content: data.content || "",
+        type: data.type,
+        status: data.status,
+        category: data.category,
+        level: data.level,
+        title: data.title,
+        headerImage: data.headerImage || undefined,
+        excerpt: data.excerpt,
+        content: data.content,
         tags: data.tags,
-        externalUrl: data.type === "external" ? data.externalUrl : undefined,
-      });
+        seoTitle: data.seoTitle || undefined,
+        seoDescription: data.seoDescription || undefined,
+      };
+
+      await updateArticle(updateData);
 
       toast({
         title: "Success",
         description:
           data.status === "draft"
-            ? "Article updated as draft successfully"
-            : "Article submitted for review successfully",
+            ? "Article saved as draft successfully"
+            : "Article updated and submitted for review",
       });
 
       router.push("/my-articles");
@@ -159,8 +156,6 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
       let errorMessage = "Failed to update article. Please try again.";
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (typeof error === "object" && error && "message" in error) {
-        errorMessage = error.message as string;
       }
 
       toast({
@@ -197,15 +192,10 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
         ),
         seoTitle: previewData.seoTitle,
         seoDescription: previewData.seoDescription,
-        externalUrl:
-          previewData.externalUrl && isValidUrl(previewData.externalUrl)
-            ? previewData.externalUrl
-            : undefined,
         author: null,
       }
     : null;
 
-  // Show status message for different article states
   const getStatusMessage = () => {
     if (article.submissionStatus === "needs_revision") {
       return (
@@ -256,8 +246,6 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="markdown">Markdown Article</SelectItem>
-                    <SelectItem value="external">External Link</SelectItem>
-                    <SelectItem value="video">Video Content</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -346,44 +334,27 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
           )}
         />
 
-        {articleType === "external" && (
-          <FormField
-            control={form.control}
-            name="externalUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>External URL</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://example.com/article" {...field} />
-                </FormControl>
-                <FormDescription>Link to the original article.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
         <FormField
           control={form.control}
           name="content"
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                {articleType === "external" ? "Summary/Commentary" : "Content"}
+                {article.type === "external" ? "Summary/Commentary" : "Content"}
               </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder={
-                    articleType === "external"
+                    article.type === "external"
                       ? "Add your commentary or summary of the external article..."
                       : "Write your article content in Markdown..."
                   }
-                  className="min-h-96"
+                  className="h-80"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                {articleType === "external"
+                {article.type === "external"
                   ? "Add your thoughts, summary, or commentary about the external article."
                   : "You can use Markdown formatting including headers, lists, code blocks, and links."}
               </FormDescription>
