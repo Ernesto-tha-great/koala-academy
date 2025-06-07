@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { requireAdmin, requireUser } from "./auth";
 import { ConvexError } from "convex/values";
 import { formatISO } from "date-fns";
@@ -46,12 +46,20 @@ export const create = mutation({
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-    let submissionStatus: "pending" | "approved" = "pending";
-    let status: "draft" | "published" = "draft";
+    let submissionStatus: "pending" | "approved" | undefined = undefined;
+    let finalStatus: "draft" | "published" = args.status;
 
-    if (user.role === "admin") {
-      submissionStatus = "approved";
-      status = args.status;
+    if (args.status === "published") {
+      if (user.role === "admin") {
+        submissionStatus = "approved";
+        finalStatus = "published";
+      } else {
+        submissionStatus = "pending";
+        finalStatus = "draft"; // Keep as draft until approved
+      }
+    } else {
+      submissionStatus = undefined;
+      finalStatus = "draft";
     }
 
     const article = await ctx.db.insert("articles", {
@@ -59,13 +67,13 @@ export const create = mutation({
       slug,
       authorId: user.userId,
       submissionStatus,
-      status,
-      publishedAt: status === "published" ? Date.now() : undefined,
+      status: finalStatus,
+      publishedAt: finalStatus === "published" ? Date.now() : undefined,
       views: 0,
       likes: 0,
       readingTime: Math.ceil(args.content.split(/\s+/).length / 200),
       lastModified: Date.now(),
-      submittedAt: Date.now(),
+      submittedAt: submissionStatus === "pending" ? Date.now() : undefined,
       category: args.category,
       level: args.level,
       seoTitle: args.seoTitle || args.title,
@@ -323,7 +331,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    const { id, ...updates } = args;
+    const { id, status, ...updates } = args;
 
     const existing = await ctx.db.get(id);
     if (!existing) {
@@ -338,7 +346,47 @@ export const update = mutation({
       Object.entries(updates).filter(([_, value]) => value !== undefined)
     );
 
-    await ctx.db.patch(id, cleanUpdates);
+    let submissionStatus = existing.submissionStatus;
+    let finalStatus = existing.status;
+    let publishedAt = existing.publishedAt;
+    let submittedAt = existing.submittedAt;
+
+    if (status) {
+      if (status === "published") {
+        if (user.role === "admin") {
+          submissionStatus = "approved";
+          finalStatus = "published";
+          publishedAt = Date.now();
+        } else {
+          submissionStatus = "pending";
+          finalStatus = "draft";
+          submittedAt = Date.now();
+        }
+      } else if (status === "draft") {
+        if (existing.submissionStatus === "pending") {
+          submissionStatus = undefined;
+          submittedAt = undefined;
+        } else if (existing.submissionStatus === "needs_revision") {
+          submissionStatus = "needs_revision";
+        } else {
+          submissionStatus = undefined;
+        }
+        finalStatus = "draft";
+        publishedAt = undefined;
+      }
+    }
+
+    await ctx.db.patch(id, {
+      ...cleanUpdates,
+      status: finalStatus,
+      submissionStatus,
+      publishedAt,
+      submittedAt,
+      lastModified: Date.now(),
+      readingTime: updates.content
+        ? Math.ceil(updates.content.split(/\s+/).length / 200)
+        : existing.readingTime,
+    });
 
     const updated = await ctx.db.get(id);
     if (!updated) {
@@ -437,6 +485,16 @@ export const getById = query({
     const article = await ctx.db.get(id);
 
     if (!article) return null;
+
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity && article.authorId !== identity.subject) {
+      if (
+        article.status !== "published" ||
+        article.submissionStatus !== "approved"
+      ) {
+        return null;
+      }
+    }
 
     return { ...article };
   },
@@ -684,12 +742,21 @@ export const getUserDrafts = query({
   handler: async (ctx) => {
     const user = await requireUser(ctx);
 
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - SEVEN_DAYS;
+
     const drafts = await ctx.db
       .query("articles")
       .filter((q) =>
         q.and(
           q.eq(q.field("authorId"), user.userId),
-          q.eq(q.field("status"), "draft")
+          q.eq(q.field("status"), "draft"),
+          q.or(
+            q.eq(q.field("submissionStatus"), undefined),
+            q.eq(q.field("submissionStatus"), "needs_revision")
+          ),
+
+          q.gt(q.field("lastModified"), cutoffTime)
         )
       )
       .order("desc")
@@ -704,6 +771,28 @@ export const getUserDrafts = query({
         role: user.role,
       },
     }));
+  },
+});
+
+export const cleanupExpiredDrafts = internalMutation({
+  handler: async (ctx) => {
+    const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - SEVEN_DAYS;
+
+    const expiredDrafts = await ctx.db
+      .query("articles")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("status"), "draft"),
+          q.eq(q.field("submissionStatus"), undefined),
+          q.lt(q.field("lastModified"), cutoffTime)
+        )
+      )
+      .collect();
+
+    await Promise.all(expiredDrafts.map((draft) => ctx.db.delete(draft._id)));
+
+    return { deleted: expiredDrafts.length };
   },
 });
 

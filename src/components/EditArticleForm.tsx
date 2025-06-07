@@ -32,7 +32,7 @@ import { api } from "../../convex/_generated/api";
 import ContentPreview from "./ContentPreview";
 import { Badge } from "@/components/ui/badge";
 import { useUser } from "@clerk/nextjs";
-import { Id } from "../../convex/_generated/dataModel";
+import { Doc } from "../../convex/_generated/dataModel";
 
 const formSchema = z
   .object({
@@ -66,132 +66,18 @@ const formSchema = z
 
 type FormData = z.infer<typeof formSchema>;
 
-function TagInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string[];
-  onChange: (tags: string[]) => void;
-  placeholder?: string;
-}) {
-  const [inputValue, setInputValue] = useState("");
-
-  const addTag = (tag: string) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !value.includes(trimmedTag)) {
-      onChange([...value, trimmedTag]);
-    }
-    setInputValue("");
-  };
-
-  const removeTag = (index: number) => {
-    onChange(value.filter((_, i) => i !== index));
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      addTag(inputValue);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    if (newValue.includes(",")) {
-      const tags = newValue.split(",");
-      const lastTag = tags.pop() || "";
-      tags.forEach((tag) => addTag(tag));
-      setInputValue(lastTag);
-    } else {
-      setInputValue(newValue);
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      {value.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {value.map((tag, index) => (
-            <Badge
-              key={index}
-              variant="secondary"
-              className="flex items-center gap-1"
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => removeTag(index)}
-                className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-      )}
-      <Input
-        value={inputValue}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-      />
-    </div>
-  );
+interface EditArticleFormProps {
+  article: Doc<"articles">;
 }
 
-export function ArticleForm() {
+export function EditArticleForm({ article }: EditArticleFormProps) {
   const { toast } = useToast();
   const router = useRouter();
-  const createArticle = useMutation(api.articles.create);
+  const updateArticle = useMutation(api.articles.update);
   const { isSignedIn, isLoaded } = useUser();
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<FormData | null>(null);
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: "markdown",
-      status: "draft",
-      category: "article",
-      level: "beginner",
-      title: "",
-      headerImage: "",
-      excerpt: "",
-      content: "",
-      tags: [],
-      seoTitle: "",
-      seoDescription: "",
-      externalUrl: "",
-    },
-    mode: "onChange",
-  });
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isSignedIn) {
-    return (
-      <div className="text-center py-12 space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900">
-          Authentication Required
-        </h2>
-        <p className="text-gray-600">
-          You need to be signed in to submit articles.
-        </p>
-        <Button onClick={() => window.location.reload()}>Refresh Page</Button>
-      </div>
-    );
-  }
 
   function isValidUrl(string: string): boolean {
     if (!string || string.trim() === "") return false;
@@ -203,6 +89,28 @@ export function ArticleForm() {
       return false;
     }
   }
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      type: article.type,
+      status:
+        article.status === "published" && article.submissionStatus === "pending"
+          ? "published"
+          : "draft",
+      category: article.category,
+      level: article.level,
+      title: article.title,
+      headerImage: article.headerImage || "",
+      excerpt: article.excerpt,
+      content: article.content,
+      tags: article.tags || [],
+      seoTitle: article.seoTitle || "",
+      seoDescription: article.seoDescription || "",
+      externalUrl: article.externalUrl || "",
+    },
+    mode: "onChange",
+  });
 
   const isSubmitting = form.formState.isSubmitting;
   const articleType = form.watch("type");
@@ -221,14 +129,15 @@ export function ArticleForm() {
   const onSubmit = async (data: FormData) => {
     try {
       if (!isSignedIn) {
-        throw new Error("Please sign in to submit articles");
+        throw new Error("Please sign in to update articles");
       }
 
       if (!isLoaded) {
         throw new Error("Authentication is still loading, please try again");
       }
 
-      await createArticle({
+      await updateArticle({
+        id: article._id,
         ...data,
         content: data.content || "",
         tags: data.tags,
@@ -239,17 +148,15 @@ export function ArticleForm() {
         title: "Success",
         description:
           data.status === "draft"
-            ? "Article saved as draft successfully"
+            ? "Article updated as draft successfully"
             : "Article submitted for review successfully",
       });
 
-      if (data.status === "published") {
-        router.push("/my-articles");
-      }
+      router.push("/my-articles");
     } catch (error) {
-      console.error("Failed to create article:", error);
+      console.error("Failed to update article:", error);
 
-      let errorMessage = "Failed to save article. Please try again.";
+      let errorMessage = "Failed to update article. Please try again.";
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === "object" && error && "message" in error) {
@@ -270,8 +177,7 @@ export function ArticleForm() {
 
   const previewArticle = previewData
     ? {
-        _id: "preview" as Id<"articles">,
-        _creationTime: Date.now(),
+        ...article,
         title: previewData.title,
         content: previewData.content,
         excerpt: previewData.excerpt,
@@ -289,12 +195,6 @@ export function ArticleForm() {
         readingTime: Math.ceil(
           (previewData.content?.split(/\s+/).length || 0) / 200
         ),
-        views: 0,
-        likes: 0,
-        publishedAt: undefined,
-        lastModified: Date.now(),
-        submittedAt: undefined,
-        authorId: undefined,
         seoTitle: previewData.seoTitle,
         seoDescription: previewData.seoDescription,
         externalUrl:
@@ -305,12 +205,39 @@ export function ArticleForm() {
       }
     : null;
 
+  // Show status message for different article states
+  const getStatusMessage = () => {
+    if (article.submissionStatus === "needs_revision") {
+      return (
+        <Alert className="mb-6">
+          <AlertDescription>
+            <strong>Revision Required:</strong> This article was returned for
+            revision. Make your changes and resubmit when ready.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    if (article.submissionStatus === "pending") {
+      return (
+        <Alert className="mb-6">
+          <AlertDescription>
+            <strong>Under Review:</strong> This article is currently being
+            reviewed. You can still make changes until it&apos;s approved.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleFormSubmit)}
-        className="space-y-6"
+        className="space-y-8"
       >
+        {getStatusMessage()}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -324,7 +251,7 @@ export function ArticleForm() {
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Select article type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -340,70 +267,27 @@ export function ArticleForm() {
 
           <FormField
             control={form.control}
-            name="category"
+            name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Category</FormLabel>
+                <FormLabel>Status</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="article">Article</SelectItem>
-                    <SelectItem value="guide">Guide</SelectItem>
-                    <SelectItem value="morph">Morph</SelectItem>
+                    <SelectItem value="draft">Save as Draft</SelectItem>
+                    <SelectItem value="published">Submit for Review</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="level"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Difficulty Level</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="headerImage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Header Image URL (Optional)</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="https://example.com/image.jpg"
-                    {...field}
-                  />
-                </FormControl>
+                <FormDescription>
+                  Drafts are private. Submitted articles go to admin review.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -432,12 +316,30 @@ export function ArticleForm() {
               <FormLabel>Excerpt</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Brief description of your article (used for previews and SEO)"
+                  placeholder="Brief description of your article"
+                  className="h-20"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
-                This will be shown in article previews and search results
+                This will be displayed in article previews and search results.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="headerImage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Header Image (Optional)</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com/image.jpg" {...field} />
+              </FormControl>
+              <FormDescription>
+                URL to a header image for your article.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -454,7 +356,7 @@ export function ArticleForm() {
                 <FormControl>
                   <Input placeholder="https://example.com/article" {...field} />
                 </FormControl>
-                <FormDescription>Link to the external article</FormDescription>
+                <FormDescription>Link to the original article.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -467,30 +369,82 @@ export function ArticleForm() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                {articleType === "external"
-                  ? "Additional Content (Optional)"
-                  : "Content"}
+                {articleType === "external" ? "Summary/Commentary" : "Content"}
               </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder={
                     articleType === "external"
-                      ? "Any additional context or summary (optional)"
-                      : "Write your article content in Markdown format"
+                      ? "Add your commentary or summary of the external article..."
+                      : "Write your article content in Markdown..."
                   }
-                  className="min-h-[400px]"
+                  className="min-h-96"
                   {...field}
                 />
               </FormControl>
               <FormDescription>
                 {articleType === "external"
-                  ? "Optional additional content to supplement the external link"
-                  : "Use Markdown formatting for headings, links, code blocks, etc."}
+                  ? "Add your thoughts, summary, or commentary about the external article."
+                  : "You can use Markdown formatting including headers, lists, code blocks, and links."}
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="guide">Guide</SelectItem>
+                    <SelectItem value="morph">Morph</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="level"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Difficulty Level</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -499,14 +453,51 @@ export function ArticleForm() {
             <FormItem>
               <FormLabel>Tags</FormLabel>
               <FormControl>
-                <TagInput
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Add tags (press Enter or comma to separate)"
-                />
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {field.value.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="flex items-center gap-1"
+                      >
+                        {tag}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => {
+                            const newTags = field.value.filter(
+                              (_, i) => i !== index
+                            );
+                            field.onChange(newTags);
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <Input
+                    placeholder="Type a tag and press Enter"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const target = e.target as HTMLInputElement;
+                        const newTag = target.value.trim();
+                        if (newTag && !field.value.includes(newTag)) {
+                          field.onChange([...field.value, newTag]);
+                          target.value = "";
+                        }
+                      }
+                    }}
+                  />
+                </div>
               </FormControl>
               <FormDescription>
-                Add relevant tags to help readers find your article
+                Press Enter after typing each tag. Tags help categorize your
+                content.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -527,7 +518,7 @@ export function ArticleForm() {
                   />
                 </FormControl>
                 <FormDescription>
-                  If not provided, the article title will be used
+                  If empty, the article title will be used.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -547,46 +538,13 @@ export function ArticleForm() {
                   />
                 </FormControl>
                 <FormDescription>
-                  If not provided, the excerpt will be used
+                  If empty, the excerpt will be used.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Publication Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="draft">Save as Draft</SelectItem>
-                  <SelectItem value="published">Submit for Review</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Drafts are saved privately. Submitted articles will be reviewed
-                before publication.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <Alert>
-          <AlertDescription>
-            By submitting this article, you confirm that it&apos;s your original
-            work and you grant us permission to publish it on our platform.
-          </AlertDescription>
-        </Alert>
 
         <div className="flex gap-4">
           <Button
@@ -615,10 +573,10 @@ export function ArticleForm() {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {status === "draft" ? "Saving Draft..." : "Submitting..."}
+                {status === "draft" ? "Updating Draft..." : "Submitting..."}
               </>
             ) : status === "draft" ? (
-              "Save as Draft"
+              "Update Draft"
             ) : (
               "Submit for Review"
             )}
