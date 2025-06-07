@@ -17,6 +17,7 @@ import type * as admin from "../admin.js";
 import type * as articles from "../articles.js";
 import type * as auth from "../auth.js";
 import type * as comments from "../comments.js";
+import type * as crons from "../crons.js";
 import type * as tags from "../tags.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   articles: typeof articles;
   auth: typeof auth;
   comments: typeof comments;
+  crons: typeof crons;
   tags: typeof tags;
   users: typeof users;
   utils: typeof utils;
