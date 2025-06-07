@@ -31,7 +31,6 @@ import { useToast } from "@/hooks/use-toast";
 import { api } from "../../convex/_generated/api";
 import ContentPreview from "./ContentPreview";
 import { Badge } from "@/components/ui/badge";
-import { useUser } from "@clerk/nextjs";
 import { Doc } from "../../convex/_generated/dataModel";
 
 const formSchema = z
@@ -74,7 +73,6 @@ export function EditArticleForm({ article }: EditArticleFormProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<FormData | null>(null);
 
-  // Convert existing article type to markdown if it's external/video (for compatibility)
   const compatibleType =
     article.type === "external" || article.type === "video"
       ? "markdown"
